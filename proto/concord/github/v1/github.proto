@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package concord.github.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/gomicro/concord/github/v1;gh_pb";
+
+message Organization {
+  string   name     = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  Defaults defaults = 2;
+
+  repeated string     teams        = 10;
+  repeated People     people       = 11;
+  repeated Secret     secrets      = 12;
+  repeated Repository repositories = 13;
+  repeated string     labels       = 14;
+}
+
+// Defaults are overriden by the same settings specified in the repository
+message Defaults {
+  optional bool   private            = 1;
+  optional string default_branch     = 2;
+  repeated Branch protected_branches = 3;
+}
+
+message People {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string username = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  repeated string teams = 10;
+}
+
+message Secret {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string value = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+}
+
+message Repository {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string description = 2;
+
+  optional bool   archived = 3;
+  repeated string labels   = 4;
+  repeated Secret secrets  = 5;
+
+  // Overrides defaults
+  optional bool   private            = 10;
+  optional string default_branch     = 11;
+  repeated Branch protected_branches = 12;
+}
+
+message Branch {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  Protection protection = 2;
+}
+
+message Protection {
+  optional bool require_pr       = 1;
+  optional bool checks_must_pass = 2;
+  optional bool signed_commits   = 3;
+
+  repeated string required_checks = 10;
+}
