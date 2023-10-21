@@ -1,6 +1,6 @@
 module github.com/gomicro/concord
 
-go 1.21.1
+go 1.21
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.31.0-20231017183020-0de7443d03cf.1
