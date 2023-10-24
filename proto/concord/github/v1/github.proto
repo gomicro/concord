@@ -15,8 +15,9 @@ message Organization {
   repeated string     teams        = 10;
   repeated People     people       = 11;
   //repeated Secret     secrets      = 12;
-  repeated Repository repositories = 13;
-  repeated string     labels       = 14;
+  repeated File       files        = 13;
+  repeated Repository repositories = 14;
+  repeated string     labels       = 15;
 }
 
 // Defaults are overriden by the same settings specified in the repository
@@ -51,6 +52,16 @@ message Secret {
   ];
 }
 */
+
+message File {
+  string source = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string destination = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  repeated string target_labels = 3;
+}
 
 message Repository {
   string name = 1 [
