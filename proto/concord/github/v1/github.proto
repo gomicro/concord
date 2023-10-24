@@ -14,7 +14,7 @@ message Organization {
 
   repeated string     teams        = 10;
   repeated People     people       = 11;
-  repeated Secret     secrets      = 12;
+  //repeated Secret     secrets      = 12;
   repeated Repository repositories = 13;
   repeated string     labels       = 14;
 }
@@ -37,6 +37,11 @@ message People {
   repeated string teams = 10;
 }
 
+/*
+TODO: This is a placeholder for now. We need to figure out how to handle
+      secrets in a way that doesn't store them in the file.
+      Also need to figure out how and when to handle rotation of them.
+
 message Secret {
   string name = 1 [
     (buf.validate.field).string.min_len = 1
@@ -45,6 +50,7 @@ message Secret {
     (buf.validate.field).string.min_len = 1
   ];
 }
+*/
 
 message Repository {
   string name = 1 [
@@ -54,7 +60,7 @@ message Repository {
 
   optional bool   archived = 3;
   repeated string labels   = 4;
-  repeated Secret secrets  = 5;
+  //repeated Secret secrets  = 5;
 
   // Overrides defaults
   optional bool   private            = 10;
