@@ -99,6 +99,16 @@ func checkRun(cmd *cobra.Command, args []string) error {
 
 	// check repos exist
 
+	rs, err := clt.GetRepos(ctx, org.Name)
+	if err != nil {
+		return err
+	}
+
+	err = createRepos(ctx, org.Name, checkRepos(ctx, org.Repositories, rs), true)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -219,6 +229,44 @@ func inviteTeamMembers(ctx context.Context, org string, team *github.Team, membe
 
 		/*
 			_, err := clt.InviteTeamMember(ctx, org, team, m)
+			if err != nil {
+				return err
+			}
+		*/
+	}
+
+	return nil
+}
+
+func checkRepos(ctx context.Context, manifestRepos []*gh_pb.Repository, githubRepos []*github.Repository) []*gh_pb.Repository {
+	missing := []*gh_pb.Repository{}
+
+	for _, mr := range manifestRepos {
+		found := false
+		for _, gr := range githubRepos {
+			if strings.EqualFold(mr.Name, *gr.Name) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			missing = append(missing, mr)
+		}
+	}
+
+	return missing
+}
+
+func createRepos(ctx context.Context, org string, repos []*gh_pb.Repository, dry bool) error {
+	for _, r := range repos {
+		if dry {
+			fmt.Printf("would create repo %s\n", r.Name)
+			continue
+		}
+
+		/*
+			_, err := clt.CreateRepo(ctx, org, r)
 			if err != nil {
 				return err
 			}
