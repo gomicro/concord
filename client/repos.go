@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gomicro/crawl"
-	"github.com/gomicro/crawl/bar"
 	"github.com/google/go-github/github"
 )
 
 var ErrGetBranch = errors.New("get branch")
 
-func (c *Client) GetRepos(ctx context.Context, progress *crawl.Progress, name string) ([]*github.Repository, error) {
+func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repository, error) {
 	count := 0
 	orgFound := true
 
@@ -50,17 +48,6 @@ func (c *Client) GetRepos(ctx context.Context, progress *crawl.Progress, name st
 		return nil, fmt.Errorf("no repos found")
 	}
 
-	theme := bar.NewThemeFromTheme(bar.DefaultTheme)
-	theme.Append(func(b *bar.Bar) string {
-		return fmt.Sprintf(" %0.2f", b.CompletedPercent())
-	})
-	theme.Prepend(func(b *bar.Bar) string {
-		return fmt.Sprintf("Fetching (%d/%d) %s", b.Current(), b.Total(), b.Elapsed())
-	})
-
-	repoBar := bar.New(theme, count)
-	progress.AddBar(repoBar)
-
 	orgOpts := &github.RepositoryListByOrgOptions{
 		Type: "all",
 		ListOptions: github.ListOptions{
@@ -96,8 +83,6 @@ func (c *Client) GetRepos(ctx context.Context, progress *crawl.Progress, name st
 		}
 
 		for i := range rs {
-			repoBar.Incr()
-
 			if rs[i].GetArchived() {
 				continue
 			}
