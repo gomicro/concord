@@ -71,7 +71,8 @@ message Repository {
 
   optional bool   archived = 3;
   repeated string labels   = 4;
-  //repeated Secret secrets  = 5;
+  repeated File   files    = 5;
+  //repeated Secret secrets  = 6;
 
   // Overrides defaults
   optional bool   private            = 10;
