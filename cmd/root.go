@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
@@ -79,5 +80,24 @@ func readManifest(file string) (*gh_pb.Organization, error) {
 		return nil, err
 	}
 
+	// fill defaults and globals
+	for _, gl := range o.Labels {
+		for _, r := range o.Repositories {
+			if !hasLabel(r.Labels, gl) {
+				r.Labels = append(r.Labels, gl)
+			}
+		}
+	}
+
 	return &o, nil
+}
+
+func hasLabel(labels []string, label string) bool {
+	for _, l := range labels {
+		if strings.EqualFold(l, label) {
+			return true
+		}
+	}
+
+	return false
 }
