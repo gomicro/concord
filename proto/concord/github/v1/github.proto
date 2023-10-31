@@ -23,7 +23,9 @@ message Organization {
 // Defaults are overriden by the same settings specified in the repository
 message Defaults {
   optional bool   private            = 1;
-  optional string default_branch     = 2;
+  optional string default_branch     = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
   repeated Branch protected_branches = 3;
 }
 
