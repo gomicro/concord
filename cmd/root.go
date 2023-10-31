@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	protovalidate "github.com/bufbuild/protovalidate-go"
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/spf13/cobra"
@@ -80,7 +81,23 @@ func readManifest(file string) (*gh_pb.Organization, error) {
 		return nil, err
 	}
 
-	// fill defaults and globals
+	validator, err := protovalidate.New()
+	if err != nil {
+		return nil, err
+	}
+
+	err = validator.Validate(&o)
+	if err != nil {
+		return nil, err
+	}
+
+	fillDefaults(&o)
+
+	return &o, nil
+}
+
+func fillDefaults(o *gh_pb.Organization) {
+	// labels
 	for _, gl := range o.Labels {
 		for _, r := range o.Repositories {
 			if !hasLabel(r.Labels, gl) {
