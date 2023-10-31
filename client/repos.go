@@ -9,7 +9,10 @@ import (
 	"github.com/google/go-github/github"
 )
 
-var ErrGetBranch = errors.New("get branch")
+var (
+	ErrGetBranch    = errors.New("get branch")
+	ErrRepoNotFound = errors.New("repo not found")
+)
 
 func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repository, error) {
 	count := 0
@@ -112,12 +115,30 @@ func (c *Client) GetRepo(ctx context.Context, org, name string) (*github.Reposit
 			return nil, fmt.Errorf("github: hit rate limit")
 		}
 
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrRepoNotFound
+		}
+
 		return nil, fmt.Errorf("get repo: %w", err)
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("repo not found")
+	return repo, nil
+}
+
+func (c *Client) GetRepoTopics(ctx context.Context, org, name string) ([]string, error) {
+	c.rate.Wait(ctx) //nolint: errcheck
+	topics, resp, err := c.ghClient.Repositories.ListAllTopics(ctx, org, name)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrRepoNotFound
+		}
+
+		return nil, fmt.Errorf("get repo topics: %w", err)
 	}
 
-	return repo, nil
+	return topics, nil
 }
