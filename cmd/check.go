@@ -9,7 +9,7 @@ import (
 
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )

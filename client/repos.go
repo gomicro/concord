@@ -6,16 +6,18 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v56/github"
 )
 
 var (
-	ErrGetBranch    = errors.New("get branch")
-	ErrRepoNotFound = errors.New("repo not found")
+	ErrGetBranch                = errors.New("get branch")
+	ErrRepoNotFound             = errors.New("repo not found")
+	ErrNoReposFound             = errors.New("no repos found")
+	ErrBranchProtectionNotFound = errors.New("branch protection not found")
 )
 
 func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repository, error) {
-	count := 0
+	count := int64(0)
 	orgFound := true
 
 	c.rate.Wait(ctx) //nolint: errcheck
@@ -42,13 +44,13 @@ func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repositor
 			return nil, fmt.Errorf("get user: %v", err.Error())
 		}
 
-		count = user.GetPublicRepos() + user.GetTotalPrivateRepos()
+		count = int64(user.GetPublicRepos()) + user.GetTotalPrivateRepos()
 	} else {
-		count = org.GetPublicRepos() + org.GetTotalPrivateRepos()
+		count = int64(org.GetPublicRepos()) + org.GetTotalPrivateRepos()
 	}
 
 	if count < 1 {
-		return nil, fmt.Errorf("no repos found")
+		return nil, ErrNoReposFound
 	}
 
 	orgOpts := &github.RepositoryListByOrgOptions{

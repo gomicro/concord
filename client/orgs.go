@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v56/github"
 )
 
 func (c *Client) OrgExists(ctx context.Context, orgName string) (bool, error) {
