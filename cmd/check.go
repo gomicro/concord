@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/google/go-github/github"
 	"github.com/spf13/cobra"
@@ -287,6 +288,10 @@ func createRepos(ctx context.Context, org string, repos []*gh_pb.Repository, dry
 func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
 	r, err := clt.GetRepo(ctx, org, repo.Name)
 	if err != nil {
+		if errors.Is(err, client.ErrRepoNotFound) {
+			return nil
+		}
+
 		return err
 	}
 
