@@ -323,7 +323,7 @@ func ensureDescription(ctx context.Context, repo *gh_pb.Repository, r *github.Re
 		return nil
 	}
 
-	if !strings.EqualFold(repo.Description, *r.Description) {
+	if !strings.EqualFold(repo.Description, r.GetDescription()) {
 		if dry {
 			fmt.Printf("would update description for repo %s\n", repo.Name)
 			return nil
