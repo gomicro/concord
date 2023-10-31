@@ -1,38 +1,74 @@
-# buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.31.0-20231017183020-0de7443d03cf.1
+# buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.31.0-20231030212536-12f9cba37c9d.2
 ## explicit
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate/priv
+# github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9
+## explicit; go 1.18
+github.com/antlr/antlr4/runtime/Go/antlr/v4
+# github.com/bufbuild/protovalidate-go v0.4.0
+## explicit; go 1.19
+github.com/bufbuild/protovalidate-go
+github.com/bufbuild/protovalidate-go/celext
+github.com/bufbuild/protovalidate-go/internal/constraints
+github.com/bufbuild/protovalidate-go/internal/errors
+github.com/bufbuild/protovalidate-go/internal/evaluator
+github.com/bufbuild/protovalidate-go/internal/expression
+github.com/bufbuild/protovalidate-go/resolver
+# github.com/franela/goblin v0.0.0-20211003143422-0a4f594942bf
+## explicit; go 1.14
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-# github.com/gomicro/crawl v0.0.0-20230326235229-cd4ed5eabb50
-## explicit; go 1.20
-github.com/gomicro/crawl
-github.com/gomicro/crawl/bar
 # github.com/gomicro/trust v0.0.1
 ## explicit; go 1.13
 github.com/gomicro/trust
+# github.com/google/cel-go v0.18.1
+## explicit; go 1.18
+github.com/google/cel-go/cel
+github.com/google/cel-go/checker
+github.com/google/cel-go/checker/decls
+github.com/google/cel-go/common
+github.com/google/cel-go/common/ast
+github.com/google/cel-go/common/containers
+github.com/google/cel-go/common/debug
+github.com/google/cel-go/common/decls
+github.com/google/cel-go/common/functions
+github.com/google/cel-go/common/operators
+github.com/google/cel-go/common/overloads
+github.com/google/cel-go/common/runes
+github.com/google/cel-go/common/stdlib
+github.com/google/cel-go/common/types
+github.com/google/cel-go/common/types/pb
+github.com/google/cel-go/common/types/ref
+github.com/google/cel-go/common/types/traits
+github.com/google/cel-go/ext
+github.com/google/cel-go/interpreter
+github.com/google/cel-go/parser
+github.com/google/cel-go/parser/gen
 # github.com/google/go-github v17.0.0+incompatible
 ## explicit
 github.com/google/go-github/github
 # github.com/google/go-querystring v1.1.0
 ## explicit; go 1.10
 github.com/google/go-querystring/query
-# github.com/gosuri/uilive v0.0.4
-## explicit; go 1.10
-github.com/gosuri/uilive
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/mattn/go-isatty v0.0.17
-## explicit; go 1.15
-github.com/mattn/go-isatty
+# github.com/onsi/gomega v1.27.4
+## explicit; go 1.18
 # github.com/spf13/cobra v1.7.0
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
+# github.com/stoewer/go-strcase v1.3.0
+## explicit; go 1.11
+github.com/stoewer/go-strcase
+# golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+## explicit; go 1.20
+golang.org/x/exp/constraints
+golang.org/x/exp/slices
 # golang.org/x/net v0.16.0
 ## explicit; go 1.17
 golang.org/x/net/context
@@ -40,9 +76,22 @@ golang.org/x/net/context
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.13.0
+# golang.org/x/text v0.13.0
 ## explicit; go 1.17
-golang.org/x/sys/unix
+golang.org/x/text/feature/plural
+golang.org/x/text/internal
+golang.org/x/text/internal/catmsg
+golang.org/x/text/internal/format
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/number
+golang.org/x/text/internal/stringset
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+golang.org/x/text/message
+golang.org/x/text/message/catalog
+golang.org/x/text/transform
+golang.org/x/text/width
 # golang.org/x/time v0.3.0
 ## explicit
 golang.org/x/time/rate
@@ -55,6 +104,12 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
+# google.golang.org/genproto/googleapis/api v0.0.0-20230913181813-007df8e322eb
+## explicit; go 1.19
+google.golang.org/genproto/googleapis/api/expr/v1alpha1
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20230913181813-007df8e322eb
+## explicit; go 1.19
+google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/protobuf v1.31.0
 ## explicit; go 1.11
 google.golang.org/protobuf/encoding/protojson
@@ -86,8 +141,13 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
+google.golang.org/protobuf/types/dynamicpb
+google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/emptypb
+google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
+google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
