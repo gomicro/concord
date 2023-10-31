@@ -6,7 +6,7 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.31.0-20231030212536-12f9cba37c9d.2
 	github.com/bufbuild/protovalidate-go v0.4.0
 	github.com/gomicro/trust v0.0.1
-	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/go-github/v56 v56.0.0
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/net v0.16.0
 	golang.org/x/oauth2 v0.13.0
