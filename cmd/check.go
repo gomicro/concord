@@ -302,6 +302,10 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 	}
 
 	// labels
+	err = ensureLabels(ctx, org, repo, r, dry)
+	if err != nil {
+		return err
+	}
 
 	// default branch
 
@@ -333,6 +337,73 @@ func ensureDescription(ctx context.Context, repo *gh_pb.Repository, r *github.Re
 				return err
 			}
 		*/
+	}
+
+	return nil
+}
+
+func ensureLabels(ctx context.Context, org string, repo *gh_pb.Repository, r *github.Repository, dry bool) error {
+	if len(repo.Labels) == 0 {
+		return nil
+	}
+
+	// get existing labels
+	topics, err := clt.GetRepoTopics(ctx, org, repo.Name)
+	if err != nil {
+		return err
+	}
+
+	// check for missing labels
+	for _, label := range repo.Labels {
+		found := false
+		for _, topic := range topics {
+			if strings.EqualFold(label, topic) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			if dry {
+				fmt.Printf("would create label %s for repo %s\n", label, repo.Name)
+				continue
+			}
+
+			/*
+				_, _, err := clt.CreateLabel(ctx, repo.Name, &github.Label{
+					Name:  &l.Name,
+					Color: &l.Color,
+				})
+				if err != nil {
+					return err
+				}
+			*/
+		}
+	}
+
+	// check for extra labels
+	for _, topic := range topics {
+		found := false
+		for _, label := range repo.Labels {
+			if strings.EqualFold(label, topic) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			if dry {
+				fmt.Printf("would delete label %s for repo %s\n", topic, repo.Name)
+				continue
+			}
+
+			/*
+				_, err := clt.DeleteLabel(ctx, repo.Name, *el.Name)
+				if err != nil {
+					return err
+				}
+			*/
+		}
 	}
 
 	return nil
