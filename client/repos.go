@@ -103,3 +103,21 @@ func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repositor
 
 	return repos, nil
 }
+
+func (c *Client) GetRepo(ctx context.Context, org, name string) (*github.Repository, error) {
+	c.rate.Wait(ctx) //nolint: errcheck
+	repo, resp, err := c.ghClient.Repositories.Get(ctx, org, name)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, fmt.Errorf("github: hit rate limit")
+		}
+
+		return nil, fmt.Errorf("get repo: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("repo not found")
+	}
+
+	return repo, nil
+}

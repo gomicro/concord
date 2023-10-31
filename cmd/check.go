@@ -109,6 +109,14 @@ func checkRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// ensure all the repos
+	for _, r := range org.Repositories {
+		err = ensureRepo(ctx, org.Name, r, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -267,6 +275,55 @@ func createRepos(ctx context.Context, org string, repos []*gh_pb.Repository, dry
 
 		/*
 			_, err := clt.CreateRepo(ctx, org, r)
+			if err != nil {
+				return err
+			}
+		*/
+	}
+
+	return nil
+}
+
+func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
+	r, err := clt.GetRepo(ctx, org, repo.Name)
+	if err != nil {
+		return err
+	}
+
+	// description
+	err = ensureDescription(ctx, repo, r, dry)
+	if err != nil {
+		return err
+	}
+
+	// labels
+
+	// default branch
+
+	// private
+
+	// protections
+
+	// files
+
+	return nil
+}
+
+func ensureDescription(ctx context.Context, repo *gh_pb.Repository, r *github.Repository, dry bool) error {
+	if repo.Description == "" {
+		return nil
+	}
+
+	if !strings.EqualFold(repo.Description, *r.Description) {
+		if dry {
+			fmt.Printf("would update description for repo %s\n", repo.Name)
+			return nil
+		}
+
+		/*
+			_, _, err := clt.UpdateRepo(ctx, repo.Name, &github.Repository{
+				Description: &repo.Description,
+			})
 			if err != nil {
 				return err
 			}
