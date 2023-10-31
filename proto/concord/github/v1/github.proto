@@ -86,7 +86,9 @@ message Branch {
   string name = 1 [
     (buf.validate.field).string.min_len = 1
   ];
-  Protection protection = 2;
+  Protection protection = 2 [
+    (buf.validate.field).required = true
+  ];
 }
 
 message Protection {
