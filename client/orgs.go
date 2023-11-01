@@ -44,6 +44,21 @@ func (c *Client) GetTeams(ctx context.Context, orgName string) ([]*github.Team, 
 	return teams, nil
 }
 
+func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) (*github.Team, error) {
+	team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
+		Name: teamName,
+	})
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	return team, nil
+}
+
 func (c *Client) GetMembers(ctx context.Context, orgName string) ([]*github.User, error) {
 	members, _, err := c.ghClient.Organizations.ListMembers(ctx, orgName, nil)
 	if err != nil {
@@ -57,12 +72,12 @@ func (c *Client) GetMembers(ctx context.Context, orgName string) ([]*github.User
 	return members, nil
 }
 
-func (c *Client) GetTeamMembers(ctx context.Context, teamID int64) ([]*github.User, error) {
+func (c *Client) GetTeamMembers(ctx context.Context, orgID, teamID int64) ([]*github.User, error) {
 	if teamID == -1 {
 		return []*github.User{}, nil
 	}
 
-	members, _, err := c.ghClient.Teams.ListTeamMembers(ctx, teamID, nil)
+	members, _, err := c.ghClient.Teams.ListTeamMembersByID(ctx, orgID, teamID, nil)
 	if err != nil {
 		if _, ok := err.(*github.RateLimitError); ok {
 			return nil, err

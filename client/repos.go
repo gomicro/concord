@@ -144,3 +144,57 @@ func (c *Client) GetRepoTopics(ctx context.Context, org, name string) ([]string,
 
 	return topics, nil
 }
+
+func (c *Client) GetBranches(ctx context.Context, org, repo string) ([]*github.Branch, error) {
+	c.rate.Wait(ctx) //nolint: errcheck
+	branches, resp, err := c.ghClient.Repositories.ListBranches(ctx, org, repo, nil)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrRepoNotFound
+		}
+
+		return nil, fmt.Errorf("get branches: %w", err)
+	}
+
+	return branches, nil
+}
+
+func (c *Client) GetBranchProtection(ctx context.Context, org, repo, branch string) (*github.Protection, error) {
+	c.rate.Wait(ctx) //nolint: errcheck
+	b, resp, err := c.ghClient.Repositories.GetBranchProtection(ctx, org, repo, branch)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrBranchProtectionNotFound
+		}
+
+		return nil, fmt.Errorf("get branch: %w", err)
+	}
+
+	return b, nil
+}
+
+func (c *Client) IsBranchProtected(ctx context.Context, org, repo, branch string) (bool, error) {
+	c.rate.Wait(ctx) //nolint: errcheck
+	b, resp, err := c.ghClient.Repositories.GetBranchProtection(ctx, org, repo, branch)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return false, fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("get branch: %w", err)
+	}
+
+	return b != nil, nil
+}
