@@ -21,10 +21,26 @@ func Println() {
 	fmt.Println()
 }
 
+func PrintInfo(text string) {
+	fmt.Printf("  %s%s%s", colorWhite, text, colorReset)
+}
+
 func PrintWarn(text string) {
 	fmt.Printf("  %s%s%s", colorYellow, text, colorReset)
 }
 
+func PrintSuccess(text string) {
+	fmt.Printf("  %s%s%s", colorGreen, text, colorReset)
+}
+
 func PrintError(text string) {
+	fmt.Printf("  %s%s%s", colorRed, text, colorReset)
+}
+
+func PrintAdd(text string) {
+	fmt.Printf("  %s%s%s", colorGreen, text, colorReset)
+}
+
+func PrintDelete(text string) {
 	fmt.Printf("  %s%s%s", colorRed, text, colorReset)
 }
