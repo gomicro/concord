@@ -61,7 +61,7 @@ func _checkMembersRun(ctx context.Context, cmd *cobra.Command, args []string, or
 		if !managedMember(org.People, p) {
 			report.PrintWarn(p.GetLogin() + " exists in github but not in manifest")
 		} else {
-			report.PrintWarn(p.GetLogin() + " exists in github")
+			report.PrintInfo(p.GetLogin() + " exists in github")
 		}
 
 		report.Println()
@@ -108,7 +108,7 @@ func missingMembers(ctx context.Context, manifestMembers []*gh_pb.People, github
 func inviteMembers(ctx context.Context, org string, members []*gh_pb.People, dry bool) error {
 	for _, m := range members {
 		if dry {
-			report.PrintWarn("invite " + m.Name)
+			report.PrintAdd("invite " + m.Name)
 			report.Println()
 			continue
 		}

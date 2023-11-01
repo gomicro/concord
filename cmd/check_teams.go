@@ -128,7 +128,7 @@ func checkTeams(ctx context.Context, manifestTeams []string, githubTeams []*gith
 func createTeams(ctx context.Context, org string, teams []string, dry bool) error {
 	for _, t := range teams {
 		if dry {
-			report.PrintWarn("create team " + t)
+			report.PrintAdd("create team " + t)
 			report.Println()
 			continue
 		}
