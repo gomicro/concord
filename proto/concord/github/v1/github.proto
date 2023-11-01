@@ -69,8 +69,8 @@ message Repository {
   string name = 1 [
     (buf.validate.field).string.min_len = 1
   ];
-  string description = 2;
 
+  optional string description = 2;
   optional bool   archived = 3;
   repeated string labels   = 4;
   repeated File   files    = 5;
