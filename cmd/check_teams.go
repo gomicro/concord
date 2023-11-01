@@ -15,12 +15,12 @@ import (
 )
 
 func init() {
-	checkCmd.AddCommand(NewCheckTeamCmd(os.Stdout))
+	checkCmd.AddCommand(NewCheckTeamsCmd(os.Stdout))
 }
 
-func NewCheckTeamCmd(out io.Writer) *cobra.Command {
+func NewCheckTeamsCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "team",
+		Use:               "teams",
 		Args:              cobra.ExactArgs(1),
 		Short:             "Check teams exists in an organization",
 		Long:              `Check teams in a configuration against what exists in github`,
