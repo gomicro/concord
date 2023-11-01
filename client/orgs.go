@@ -2,26 +2,33 @@ package client
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/google/go-github/v56/github"
 )
 
-func (c *Client) OrgExists(ctx context.Context, orgName string) (bool, error) {
-	_, resp, err := c.ghClient.Organizations.Get(ctx, orgName)
-	if resp == nil && err != nil {
+var (
+	ErrOrgNotFound = errors.New("organization not found")
+)
+
+func (c *Client) GetOrg(ctx context.Context, orgName string) (*github.Organization, error) {
+	org, _, err := c.ghClient.Organizations.Get(ctx, orgName)
+	if err != nil {
 		if _, ok := err.(*github.RateLimitError); ok {
-			return false, err
+			return nil, err
 		}
 
-		return false, err
+		if errResp, ok := err.(*github.ErrorResponse); ok {
+			if errResp.Response.StatusCode == http.StatusNotFound {
+				return nil, ErrOrgNotFound
+			}
+		}
+
+		return nil, err
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
-		return false, nil
-	}
-
-	return true, nil
+	return org, nil
 }
 
 func (c *Client) GetTeams(ctx context.Context, orgName string) ([]*github.Team, error) {
