@@ -45,9 +45,28 @@ func (c *Client) GetTeams(ctx context.Context, orgName string) ([]*github.Team, 
 }
 
 func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) error {
-	_, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
+	team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
 		Name: teamName,
 	})
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
+		return err
+	}
+
+	// when creating a team, the current user is added, so we need to remove it
+	user, _, err := c.ghClient.Users.Get(ctx, "")
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
+		return err
+	}
+
+	err = c.RemoveTeamMember(ctx, team.GetOrganization().GetID(), team.GetID(), *user.Login)
 	if err != nil {
 		if _, ok := err.(*github.RateLimitError); ok {
 			return err
@@ -61,6 +80,19 @@ func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) error
 
 func (c *Client) InviteTeamMember(ctx context.Context, orgID, teamID int64, user string) error {
 	_, _, err := c.ghClient.Teams.AddTeamMembershipByID(ctx, orgID, teamID, user, nil)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) RemoveTeamMember(ctx context.Context, orgID, teamID int64, user string) error {
+	_, err := c.ghClient.Teams.RemoveTeamMembershipByID(ctx, orgID, teamID, user)
 	if err != nil {
 		if _, ok := err.(*github.RateLimitError); ok {
 			return err

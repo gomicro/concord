@@ -62,7 +62,6 @@ func _checkTeamsRun(ctx context.Context, cmd *cobra.Command, args []string, org 
 	report.PrintHeader("Teams")
 	report.Println()
 
-	// check teams exist
 	tms, err := clt.GetTeams(ctx, org.Name)
 	if err != nil {
 		return handleError(cmd, err)
@@ -80,33 +79,52 @@ func _checkTeamsRun(ctx context.Context, cmd *cobra.Command, args []string, org 
 
 	mts := checkTeams(ctx, org.Teams, tms)
 
-	err = createTeams(ctx, org.Name, mts, true)
+	err = createTeams(ctx, org.Name, mts, dry)
 	if err != nil {
 		return handleError(cmd, err)
-	}
-
-	// fill in missing teams as fakes
-	for i := range mts {
-		tms = append(tms, &github.Team{
-			Name: &mts[i],
-			ID:   github.Int64(-1),
-		})
 	}
 
 	report.Println()
 	report.PrintHeader("Team Memberships")
 	report.Println()
 
-	em := getExpectedTeamMembers(org.People)
+	if dry {
+		// fill in missing teams as fakes
+		for i := range mts {
+			tms = append(tms, &github.Team{
+				Name: &mts[i],
+				ID:   github.Int64(-1),
+			})
+		}
+	} else {
+		tms, err = clt.GetTeams(ctx, org.Name)
+		if err != nil {
+			return handleError(cmd, err)
+		}
+	}
+
+	expected := getExpectedTeamMembers(org.People)
 
 	for _, t := range tms {
-		// get teams members
+		report.PrintHeader(t.GetName())
+		report.Println()
+
 		ms, err := clt.GetTeamMembers(ctx, ghOrg.GetID(), t.GetID())
 		if err != nil {
 			return handleError(cmd, err)
 		}
 
-		err = inviteTeamMembers(ctx, ghOrg, t, checkTeamMembers(ctx, em[strings.ToLower(t.GetName())], ms), true)
+		for _, m := range ms {
+			if !managedTeamMember(org.People, m.GetLogin()) {
+				report.PrintWarn(m.GetLogin() + " exists in team but not in manifest")
+			} else {
+				report.PrintInfo(m.GetLogin() + " exists in team")
+			}
+
+			report.Println()
+		}
+
+		err = inviteTeamMembers(ctx, ghOrg, t, checkTeamMembers(ctx, expected[strings.ToLower(t.GetName())], ms), dry)
 		if err != nil {
 			return handleError(cmd, err)
 		}
@@ -195,6 +213,16 @@ func checkTeamMembers(ctx context.Context, expected []string, members []*github.
 	}
 
 	return missing
+}
+
+func managedTeamMember(manifestPeople []*gh_pb.People, name string) bool {
+	for _, p := range manifestPeople {
+		if strings.EqualFold(p.Username, name) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func inviteTeamMembers(ctx context.Context, org *github.Organization, team *github.Team, members []string, dry bool) error {
