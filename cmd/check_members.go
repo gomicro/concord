@@ -113,15 +113,13 @@ func inviteMembers(ctx context.Context, org string, members []*gh_pb.People, dry
 			continue
 		}
 
-		/*
-			err := clt.InviteMember(ctx, org, m.Name)
-			if err != nil {
-				return err
-			}
+		err := clt.InviteMember(ctx, org, m.Name)
+		if err != nil {
+			return err
+		}
 
-			report.PrintAdd("invited " + m.Name)
-			report.Println()
-		*/
+		report.PrintAdd("invited " + m.Name)
+		report.Println()
 	}
 
 	return nil
