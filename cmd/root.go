@@ -37,6 +37,11 @@ func Execute() {
 	}
 }
 
+func handleError(c *cobra.Command, err error) error {
+	c.SilenceUsage = true
+	return err
+}
+
 func setupClient(cmd *cobra.Command, args []string) error {
 	tkn := os.Getenv("GITHUB_TOKEN")
 
@@ -97,21 +102,108 @@ func readManifest(file string) (*gh_pb.Organization, error) {
 }
 
 func fillDefaults(o *gh_pb.Organization) {
-	// labels
 	for _, gl := range o.Labels {
 		for _, r := range o.Repositories {
-			if !hasLabel(r.Labels, gl) {
+			if !hasDefaultLabel(r.Labels, gl) {
 				r.Labels = append(r.Labels, gl)
 			}
 		}
 	}
 
-	return &o, nil
+	for _, gf := range o.Files {
+		for _, r := range o.Repositories {
+			if !hasDefaultFile(r.Files, gf) {
+				r.Files = append(r.Files, gf)
+			}
+		}
+	}
+
+	if o.Defaults != nil {
+		for _, r := range o.Repositories {
+			if o.Defaults.DefaultBranch != nil {
+				if r.DefaultBranch == nil {
+					r.DefaultBranch = o.Defaults.DefaultBranch
+				}
+			}
+
+			if o.Defaults.Private != nil {
+				if r.Private == nil {
+					r.Private = o.Defaults.Private
+				}
+			}
+
+			for _, p := range o.Defaults.ProtectedBranches {
+				if !hasDefaultProtectedBranch(r.ProtectedBranches, p) {
+					r.ProtectedBranches = append(r.ProtectedBranches, p)
+				} else {
+					fillDefaultProtections(r.ProtectedBranches, p)
+				}
+			}
+		}
+	}
 }
 
-func hasLabel(labels []string, label string) bool {
+func hasDefaultLabel(labels []string, label string) bool {
 	for _, l := range labels {
 		if strings.EqualFold(l, label) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasDefaultFile(files []*gh_pb.File, file *gh_pb.File) bool {
+	for _, f := range files {
+		if strings.EqualFold(f.Destination, file.Destination) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasDefaultProtectedBranch(branches []*gh_pb.Branch, branch *gh_pb.Branch) bool {
+	for _, b := range branches {
+		if strings.EqualFold(b.Name, branch.Name) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func fillDefaultProtections(branches []*gh_pb.Branch, branch *gh_pb.Branch) {
+	for _, b := range branches {
+		if strings.EqualFold(b.Name, branch.Name) {
+			if b.Protection.RequirePr == nil {
+				b.Protection.RequirePr = branch.Protection.RequirePr
+			}
+
+			if b.Protection.ChecksMustPass == nil {
+				b.Protection.ChecksMustPass = branch.Protection.ChecksMustPass
+			}
+
+			if b.Protection.SignedCommits == nil {
+				b.Protection.SignedCommits = branch.Protection.SignedCommits
+			}
+
+			if len(b.Protection.RequiredChecks) == 0 {
+				b.Protection.RequiredChecks = branch.Protection.RequiredChecks
+			} else {
+				for _, rc := range branch.Protection.RequiredChecks {
+					if !hasDefaultRequiredCheck(b.Protection.RequiredChecks, rc) {
+						b.Protection.RequiredChecks = append(b.Protection.RequiredChecks, rc)
+					}
+				}
+			}
+		}
+	}
+}
+
+func hasDefaultRequiredCheck(checks []string, check string) bool {
+	for _, c := range checks {
+		if strings.EqualFold(c, check) {
 			return true
 		}
 	}
