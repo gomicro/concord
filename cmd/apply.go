@@ -13,10 +13,12 @@ func init() {
 
 func NewApplyCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "apply",
-		Short: "Apply a github configuration",
-		Long:  `Apply a github configuration`,
-		RunE:  applyRun,
+		Use:               "apply",
+		Args:              cobra.ExactArgs(1),
+		Short:             "Apply a github configuration",
+		Long:              `Apply a github configuration`,
+		PersistentPreRunE: setupClient,
+		RunE:              applyRun,
 	}
 
 	cmd.SetOut(out)
