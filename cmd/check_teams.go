@@ -68,6 +68,16 @@ func _checkTeamsRun(ctx context.Context, cmd *cobra.Command, args []string, org 
 		return handleError(cmd, err)
 	}
 
+	for _, t := range tms {
+		if !managedTeam(org.Teams, t.GetName()) {
+			report.PrintWarn(t.GetName() + " exists in github but not in manifest")
+		} else {
+			report.PrintInfo(t.GetName() + " exists in github")
+		}
+
+		report.Println()
+	}
+
 	mts := checkTeams(ctx, org.Teams, tms)
 
 	err = createTeams(ctx, org.Name, mts, true)
@@ -96,13 +106,23 @@ func _checkTeamsRun(ctx context.Context, cmd *cobra.Command, args []string, org 
 			return handleError(cmd, err)
 		}
 
-		err = inviteTeamMembers(ctx, org.Name, t, checkTeamMembers(ctx, em[strings.ToLower(t.GetName())], ms), true)
+		err = inviteTeamMembers(ctx, ghOrg, t, checkTeamMembers(ctx, em[strings.ToLower(t.GetName())], ms), true)
 		if err != nil {
 			return handleError(cmd, err)
 		}
 	}
 
 	return nil
+}
+
+func managedTeam(manifestTeams []string, name string) bool {
+	for _, t := range manifestTeams {
+		if strings.EqualFold(t, name) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func checkTeams(ctx context.Context, manifestTeams []string, githubTeams []*github.Team) []string {
@@ -133,10 +153,13 @@ func createTeams(ctx context.Context, org string, teams []string, dry bool) erro
 			continue
 		}
 
-		_, err := clt.CreateTeam(ctx, org, t)
+		err := clt.CreateTeam(ctx, org, t)
 		if err != nil {
 			return err
 		}
+
+		report.PrintSuccess("created team " + t)
+		report.Println()
 	}
 
 	return nil
@@ -174,7 +197,7 @@ func checkTeamMembers(ctx context.Context, expected []string, members []*github.
 	return missing
 }
 
-func inviteTeamMembers(ctx context.Context, org string, team *github.Team, members []string, dry bool) error {
+func inviteTeamMembers(ctx context.Context, org *github.Organization, team *github.Team, members []string, dry bool) error {
 	for _, m := range members {
 		if dry {
 			report.PrintWarn("invite " + m + " to team " + *team.Name)
@@ -182,12 +205,12 @@ func inviteTeamMembers(ctx context.Context, org string, team *github.Team, membe
 			continue
 		}
 
-		/*
-			_, err := clt.InviteTeamMember(ctx, org, team, m)
-			if err != nil {
-				return err
-			}
-		*/
+		err := clt.InviteTeamMember(ctx, org.GetID(), team.GetID(), m)
+		if err != nil {
+			return err
+		}
+		report.PrintSuccess("invited " + m + " to team " + *team.Name)
+		report.Println()
 	}
 
 	return nil

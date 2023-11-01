@@ -44,19 +44,32 @@ func (c *Client) GetTeams(ctx context.Context, orgName string) ([]*github.Team, 
 	return teams, nil
 }
 
-func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) (*github.Team, error) {
-	team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
+func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) error {
+	_, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
 		Name: teamName,
 	})
 	if err != nil {
 		if _, ok := err.(*github.RateLimitError); ok {
-			return nil, err
+			return err
 		}
 
-		return nil, err
+		return err
 	}
 
-	return team, nil
+	return nil
+}
+
+func (c *Client) InviteTeamMember(ctx context.Context, orgID, teamID int64, user string) error {
+	_, _, err := c.ghClient.Teams.AddTeamMembershipByID(ctx, orgID, teamID, user, nil)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) GetMembers(ctx context.Context, orgName string) ([]*github.User, error) {
