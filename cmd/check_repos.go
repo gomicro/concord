@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -67,34 +68,107 @@ func reposRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb
 	return nil
 }
 
-func checkRepos(ctx context.Context, manifestRepos []*gh_pb.Repository, githubRepos []*github.Repository) []*gh_pb.Repository {
-	missing := []*gh_pb.Repository{}
+func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
+	ghr, err := clt.GetRepo(ctx, org, repo.Name)
+	if err != nil && !errors.Is(err, client.ErrRepoNotFound) {
+		return err
+	}
 
-	for _, mr := range manifestRepos {
-		found := false
-		for _, gr := range githubRepos {
-			if strings.EqualFold(mr.Name, *gr.Name) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			missing = append(missing, mr)
+	if errors.Is(err, client.ErrRepoNotFound) {
+		err = createRepo(ctx, org, repo, dry)
+		if err != nil {
+			return err
 		}
 	}
 
-	return missing
-}
+	edits := &github.Repository{}
 
-func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
+	if repo.Description != nil && !strings.EqualFold(ghr.GetDescription(), *repo.Description) {
+		edits.Description = repo.Description
+	}
+
+	if repo.Archived != nil && ghr.GetArchived() != *repo.Archived {
+		edits.Archived = repo.Archived
+	}
+
+	if len(repo.Labels) > 0 {
+		edits.Topics = repo.Labels
+	}
+
+	if repo.Private != nil && ghr.GetPrivate() != *repo.Private {
+		edits.Private = repo.Private
+	}
+
+	if repo.DefaultBranch != nil && !strings.EqualFold(ghr.GetDefaultBranch(), *repo.DefaultBranch) {
+		edits.DefaultBranch = repo.DefaultBranch
+	}
+
 	if dry {
-		report.PrintWarn("create repo " + repo.Name)
-		report.Println()
+		if edits.Description != nil {
+			report.PrintAdd("updating description to '" + *edits.Description + "'")
+			report.Println()
+		}
+
+		if edits.Archived != nil {
+			report.PrintAdd("updating archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'")
+			report.Println()
+		}
+
+		if len(edits.Topics) > 0 {
+			report.PrintAdd("updating topics to [" + strings.Join(edits.Topics, ", ") + "]")
+			report.Println()
+		}
+
+		if edits.Private != nil {
+			report.PrintAdd("updating private to '" + fmt.Sprintf("%t", *edits.Private) + "'")
+			report.Println()
+		}
+
+		if edits.DefaultBranch != nil {
+			report.PrintAdd("updating default branch to '" + *edits.DefaultBranch + "'")
+			report.Println()
+		}
+	} else {
+		err = clt.UpdateRepo(ctx, org, repo.Name, edits)
+		if err != nil {
+			return err
+		}
+
+		if edits.Description != nil {
+			report.PrintAdd("updated description to '" + *edits.Description + "'")
+			report.Println()
+		}
+
+		if edits.Archived != nil {
+			report.PrintAdd("updated archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'")
+			report.Println()
+		}
+
+		if len(edits.Topics) > 0 {
+			report.PrintAdd("updated topics to [" + strings.Join(edits.Topics, ", ") + "]")
+			report.Println()
+		}
+
+		if edits.Private != nil {
+			report.PrintAdd("updated private to '" + fmt.Sprintf("%t", *edits.Private) + "'")
+			report.Println()
+		}
+
+		if edits.DefaultBranch != nil {
+			report.PrintAdd("updated default branch to '" + *edits.DefaultBranch + "'")
+			report.Println()
+		}
 	}
 
 	/*
-		_, err := clt.CreateRepo(ctx, org, r)
+		// files
+		err = ensureFiles(ctx, org, repo, r, creating, dry)
+		if err != nil {
+			return err
+		}
+
+		// protected branches
+		err = ensureProtectedBranches(ctx, org, repo, r, creating, dry)
 		if err != nil {
 			return err
 		}
@@ -103,137 +177,91 @@ func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 	return nil
 }
 
-func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
-	r, err := clt.GetRepo(ctx, org, repo.Name)
-	if err != nil && !errors.Is(err, client.ErrRepoNotFound) {
-		return err
+func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
+	state := &github.Repository{
+		Name: &repo.Name,
 	}
 
-	creating := false
-	if errors.Is(err, client.ErrRepoNotFound) {
-		creating = true
-		err = createRepo(ctx, org, repo, dry)
+	if repo.Description != nil {
+		state.Description = repo.Description
+	}
+
+	if repo.Archived != nil {
+		state.Archived = repo.Archived
+	}
+
+	if len(repo.Labels) > 0 {
+		state.Topics = repo.Labels
+	}
+
+	if repo.Private != nil {
+		state.Private = repo.Private
+	}
+
+	if repo.DefaultBranch != nil {
+		state.DefaultBranch = repo.DefaultBranch
+	}
+
+	if dry {
+		report.PrintWarn("creating repo " + repo.Name)
+		report.Println()
+
+		if state.Description != nil {
+			report.PrintAdd("setting description to '" + *state.Description + "'")
+			report.Println()
+		}
+
+		if state.Archived != nil {
+			report.PrintAdd("setting archived to '" + fmt.Sprintf("%t", *state.Archived) + "'")
+			report.Println()
+		}
+
+		if len(state.Topics) > 0 {
+			report.PrintAdd("setting topics to [" + strings.Join(state.Topics, ", ") + "]")
+			report.Println()
+		}
+
+		if state.Private != nil {
+			report.PrintAdd("setting private to '" + fmt.Sprintf("%t", *state.Private) + "'")
+			report.Println()
+		}
+
+		if state.DefaultBranch != nil {
+			report.PrintAdd("setting default branch to '" + *state.DefaultBranch + "'")
+			report.Println()
+		}
+	} else {
+		err := clt.CreateRepo(ctx, org, state)
 		if err != nil {
 			return err
 		}
-	}
 
-	// description
-	err = ensureDescription(ctx, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	// archived
-	err = ensureArchived(ctx, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	// labels
-	err = ensureLabels(ctx, org, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	// files
-	err = ensureFiles(ctx, org, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	// private
-	err = ensurePrivate(ctx, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	// default branch
-	err = ensureDefaultBranch(ctx, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	// protected branches
-	err = ensureProtectedBranches(ctx, org, repo, r, creating, dry)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ensureDescription(ctx context.Context, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	if repo.Description == "" {
-		return nil
-	}
-
-	if creating && dry {
-		report.PrintWarn("update description for repo " + repo.Name)
+		report.PrintWarn("created repo " + repo.Name)
 		report.Println()
-		return nil
-	}
 
-	if !strings.EqualFold(repo.Description, r.GetDescription()) {
-		if dry {
-			report.PrintWarn("update description for repo " + repo.Name)
+		if state.Description != nil {
+			report.PrintAdd("set description to '" + *state.Description + "'")
 			report.Println()
-			return nil
 		}
 
-		/*
-			_, _, err := clt.UpdateRepo(ctx, repo.Name, &github.Repository{
-				Description: &repo.Description,
-			})
-			if err != nil {
-				return handleError(cmd, err)
-			}
-		*/
-	}
-
-	return nil
-}
-
-func ensureArchived(ctx context.Context, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	if repo.Archived == nil {
-		return nil
-	}
-
-	if creating && dry {
-		report.PrintWarn("archive repo " + repo.Name)
-		report.Println()
-		return nil
-	}
-
-	if *repo.Archived {
-		if !r.GetArchived() {
-			if dry {
-				report.PrintWarn("archive repo " + repo.Name)
-				report.Println()
-				return nil
-			}
-
-			/*
-				_, err := clt.ArchiveRepo(ctx, repo.Name)
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
+		if state.Archived != nil {
+			report.PrintAdd("set archived to '" + fmt.Sprintf("%t", *state.Archived) + "'")
+			report.Println()
 		}
-	} else {
-		if r.GetArchived() {
-			if dry {
-				report.PrintWarn("unarchive repo " + repo.Name)
-				report.Println()
-				return nil
-			}
 
-			/*
-				_, err := clt.UnarchiveRepo(ctx, repo.Name)
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
+		if len(state.Topics) > 0 {
+			report.PrintAdd("set topics to [" + strings.Join(state.Topics, ", ") + "]")
+			report.Println()
+		}
+
+		if state.Private != nil {
+			report.PrintAdd("set private to '" + fmt.Sprintf("%t", *state.Private) + "'")
+			report.Println()
+		}
+
+		if state.DefaultBranch != nil {
+			report.PrintAdd("set default branch to '" + *state.DefaultBranch + "'")
+			report.Println()
 		}
 	}
 
@@ -241,161 +269,6 @@ func ensureArchived(ctx context.Context, repo *gh_pb.Repository, r *github.Repos
 }
 
 func ensureFiles(ctx context.Context, org string, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	return nil
-}
-
-func ensureLabels(ctx context.Context, org string, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	if len(repo.Labels) == 0 {
-		return nil
-	}
-
-	if creating && dry {
-		for _, label := range repo.Labels {
-			report.PrintWarn("create label " + label + " for repo " + repo.Name)
-			report.Println()
-			continue
-		}
-
-		return nil
-	}
-
-	// get existing labels
-	topics, err := clt.GetRepoTopics(ctx, org, repo.Name)
-	if err != nil {
-		return err
-	}
-
-	// check for missing labels
-	for _, label := range repo.Labels {
-		found := false
-		for _, topic := range topics {
-			if strings.EqualFold(label, topic) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			if dry {
-				report.PrintWarn("create label " + label + " for repo " + repo.Name)
-				report.Println()
-				continue
-			}
-
-			/*
-				_, _, err := clt.CreateLabel(ctx, repo.Name, &github.Label{
-					Name:  &l.Name,
-					Color: &l.Color,
-				})
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
-		}
-	}
-
-	// check for extra labels
-	for _, topic := range topics {
-		found := false
-		for _, label := range repo.Labels {
-			if strings.EqualFold(label, topic) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			if dry {
-				report.PrintWarn("delete label " + topic + " for repo " + repo.Name)
-				report.Println()
-				continue
-			}
-
-			/*
-				_, err := clt.DeleteLabel(ctx, repo.Name, *el.Name)
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
-		}
-	}
-
-	return nil
-}
-
-func ensurePrivate(ctx context.Context, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	if repo.Private == nil {
-		return nil
-	}
-	if creating && dry {
-		report.PrintWarn("make repo " + repo.Name + " private")
-		report.Println()
-		return nil
-	}
-
-	if *repo.Private {
-		if !r.GetPrivate() {
-			if dry {
-				report.PrintWarn("make repo " + repo.Name + " private")
-				report.Println()
-				return nil
-			}
-
-			/*
-				_, _, err := clt.UpdateRepo(ctx, repo.Name, &github.Repository{
-					Private: &repo.Private,
-				})
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
-		}
-	} else {
-		if r.GetPrivate() {
-			if dry {
-				report.PrintWarn("make repo " + repo.Name + " public")
-				report.Println()
-				return nil
-			}
-
-			/*
-				_, _, err := clt.UpdateRepo(ctx, repo.Name, &github.Repository{
-					Private: &repo.Private,
-				})
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
-		}
-	}
-
-	return nil
-}
-
-func ensureDefaultBranch(ctx context.Context, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	if creating && dry {
-		report.PrintWarn("update default branch for repo " + repo.Name)
-		report.Println()
-		return nil
-	}
-
-	if !strings.EqualFold(*repo.DefaultBranch, r.GetDefaultBranch()) {
-		if dry {
-			report.PrintWarn("update default branch for repo " + repo.Name)
-			report.Println()
-			return nil
-		}
-
-		/*
-			_, _, err := clt.UpdateRepo(ctx, repo.Name, &github.Repository{
-				DefaultBranch: &repo.DefaultBranch,
-			})
-			if err != nil {
-				return handleError(cmd, err)
-			}
-		*/
-	}
-
 	return nil
 }
 

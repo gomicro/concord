@@ -198,3 +198,35 @@ func (c *Client) IsBranchProtected(ctx context.Context, org, repo, branch string
 
 	return b != nil, nil
 }
+
+func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Repository) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+	_, _, err := c.ghClient.Repositories.Create(ctx, org, repo)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+
+		return fmt.Errorf("create repo: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github.Repository) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+	_, resp, err := c.ghClient.Repositories.Edit(ctx, org, repo, edits)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrRepoNotFound
+		}
+
+		return fmt.Errorf("update repo description: %w", err)
+	}
+
+	return nil
+}
