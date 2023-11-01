@@ -230,3 +230,21 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 
 	return nil
 }
+
+func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []string) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+	_, resp, err := c.ghClient.Repositories.ReplaceAllTopics(ctx, org, repo, topics)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrRepoNotFound
+		}
+
+		return fmt.Errorf("set repo topics: %w", err)
+	}
+
+	return nil
+}

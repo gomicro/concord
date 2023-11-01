@@ -13,6 +13,7 @@ import (
 	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -91,10 +92,6 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		edits.Archived = repo.Archived
 	}
 
-	if len(repo.Labels) > 0 {
-		edits.Topics = repo.Labels
-	}
-
 	if repo.Private != nil && ghr.GetPrivate() != *repo.Private {
 		edits.Private = repo.Private
 	}
@@ -111,11 +108,6 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 
 		if edits.Archived != nil {
 			report.PrintAdd("updating archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'")
-			report.Println()
-		}
-
-		if len(edits.Topics) > 0 {
-			report.PrintAdd("updating topics to [" + strings.Join(edits.Topics, ", ") + "]")
 			report.Println()
 		}
 
@@ -144,11 +136,6 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 			report.Println()
 		}
 
-		if len(edits.Topics) > 0 {
-			report.PrintAdd("updated topics to [" + strings.Join(edits.Topics, ", ") + "]")
-			report.Println()
-		}
-
 		if edits.Private != nil {
 			report.PrintAdd("updated private to '" + fmt.Sprintf("%t", *edits.Private) + "'")
 			report.Println()
@@ -158,6 +145,11 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 			report.PrintAdd("updated default branch to '" + *edits.DefaultBranch + "'")
 			report.Println()
 		}
+	}
+
+	err = ensureTopics(ctx, org, repo, ghr, dry)
+	if err != nil {
+		return err
 	}
 
 	/*
@@ -173,6 +165,40 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 			return err
 		}
 	*/
+
+	return nil
+}
+
+func ensureTopics(ctx context.Context, org string, repo *gh_pb.Repository, ghr *github.Repository, dry bool) error {
+	if len(repo.Labels) == 0 {
+		return nil
+	}
+
+	ghl := ghr.Topics
+	slices.Sort(ghl)
+
+	l := repo.Labels
+	slices.Sort(l)
+
+	if !slices.Equal(ghl, l) {
+		if dry {
+			report.PrintAdd("updating topics to [" + strings.Join(l, ", ") + "]")
+			report.Println()
+
+			return nil
+		}
+
+		err := clt.SetRepoTopics(ctx, org, repo.Name, l)
+		if err != nil {
+			return err
+		}
+
+		report.PrintAdd("updated topics to [" + strings.Join(l, ", ") + "]")
+		report.Println()
+	} else {
+		report.PrintInfo("topics are [" + strings.Join(l, ", ") + "]")
+		report.Println()
+	}
 
 	return nil
 }
