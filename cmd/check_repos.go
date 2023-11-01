@@ -45,10 +45,10 @@ func checkReposRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return _checkReposRun(ctx, cmd, args, org)
+	return reposRun(ctx, cmd, args, org, true)
 }
 
-func _checkReposRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization) error {
+func reposRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
 	report.Println()
 	report.PrintHeader("Repos")
 	report.Println()
@@ -58,7 +58,7 @@ func _checkReposRun(ctx context.Context, cmd *cobra.Command, args []string, org 
 		report.Println()
 		report.PrintHeader(r.Name)
 		report.Println()
-		err := ensureRepo(ctx, org.Name, r, true)
+		err := ensureRepo(ctx, org.Name, r, dry)
 		if err != nil {
 			return handleError(cmd, err)
 		}

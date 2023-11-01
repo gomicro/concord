@@ -43,10 +43,10 @@ func checkMembersRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return _checkMembersRun(ctx, cmd, args, org)
+	return membersRun(ctx, cmd, args, org, true)
 }
 
-func _checkMembersRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization) error {
+func membersRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
 	report.Println()
 	report.PrintHeader("Members")
 	report.Println()
@@ -67,7 +67,7 @@ func _checkMembersRun(ctx context.Context, cmd *cobra.Command, args []string, or
 		report.Println()
 	}
 
-	err = inviteMembers(ctx, org.Name, missingMembers(ctx, org.People, ps), true)
+	err = inviteMembers(ctx, org.Name, missingMembers(ctx, org.People, ps), dry)
 	if err != nil {
 		return handleError(cmd, err)
 	}

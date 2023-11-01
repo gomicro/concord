@@ -42,17 +42,17 @@ func checkRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = _checkMembersRun(ctx, cmd, args, org)
+	err = membersRun(ctx, cmd, args, org, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = _checkTeamsRun(ctx, cmd, args, org)
+	err = teamsRun(ctx, cmd, args, org, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = _checkReposRun(ctx, cmd, args, org)
+	err = reposRun(ctx, cmd, args, org, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}

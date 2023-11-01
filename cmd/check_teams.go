@@ -45,10 +45,10 @@ func checkTeamsRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return _checkTeamsRun(ctx, cmd, args, org)
+	return teamsRun(ctx, cmd, args, org, true)
 }
 
-func _checkTeamsRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization) error {
+func teamsRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
 	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
 		if errors.Is(err, client.ErrOrgNotFound) {
