@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package concord.github.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/gomicro/concord/github/v1;gh_pb";
+
+message Organization {
+  string   name     = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  Defaults defaults = 2;
+
+  repeated string     teams        = 10;
+  repeated People     people       = 11;
+  //repeated Secret     secrets      = 12;
+  repeated File       files        = 13;
+  repeated Repository repositories = 14;
+  repeated string     labels       = 15;
+}
+
+// Defaults are overriden by the same settings specified in the repository
+message Defaults {
+  optional bool   private            = 1;
+  optional string default_branch     = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  repeated Branch protected_branches = 3;
+}
+
+message People {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string username = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  repeated string teams = 10;
+}
+
+/*
+TODO: This is a placeholder for now. We need to figure out how to handle
+      secrets in a way that doesn't store them in the file.
+      Also need to figure out how and when to handle rotation of them.
+
+message Secret {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string value = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+}
+*/
+
+message File {
+  string source = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  string destination = 2 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  repeated string target_labels = 3;
+}
+
+message Repository {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  optional string description = 2;
+  optional bool   archived = 3;
+  repeated string labels   = 4;
+  repeated File   files    = 5;
+  //repeated Secret secrets  = 6;
+
+  // Overrides defaults
+  optional bool   private            = 10;
+  optional string default_branch     = 11;
+  repeated Branch protected_branches = 12;
+}
+
+message Branch {
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1
+  ];
+  Protection protection = 2 [
+    (buf.validate.field).required = true
+  ];
+}
+
+message Protection {
+  optional bool require_pr       = 1;
+  optional bool checks_must_pass = 2;
+  optional bool signed_commits   = 3;
+
+  repeated string required_checks = 10;
+}
