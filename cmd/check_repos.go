@@ -152,15 +152,15 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		return err
 	}
 
+	// protected branches
+	err = ensureProtectedBranches(ctx, org, repo, ghr, dry)
+	if err != nil {
+		return err
+	}
+
 	/*
 		// files
 		err = ensureFiles(ctx, org, repo, r, creating, dry)
-		if err != nil {
-			return err
-		}
-
-		// protected branches
-		err = ensureProtectedBranches(ctx, org, repo, r, creating, dry)
 		if err != nil {
 			return err
 		}
@@ -182,7 +182,7 @@ func ensureTopics(ctx context.Context, org string, repo *gh_pb.Repository, ghr *
 
 	if !slices.Equal(ghl, l) {
 		if dry {
-			report.PrintAdd("updating topics to [" + strings.Join(l, ", ") + "]")
+			report.PrintAdd("updating labels to [" + strings.Join(l, ", ") + "]")
 			report.Println()
 
 			return nil
@@ -193,10 +193,10 @@ func ensureTopics(ctx context.Context, org string, repo *gh_pb.Repository, ghr *
 			return err
 		}
 
-		report.PrintAdd("updated topics to [" + strings.Join(l, ", ") + "]")
+		report.PrintAdd("updated labels to [" + strings.Join(l, ", ") + "]")
 		report.Println()
 	} else {
-		report.PrintInfo("topics are [" + strings.Join(l, ", ") + "]")
+		report.PrintInfo("labels are [" + strings.Join(l, ", ") + "]")
 		report.Println()
 	}
 
@@ -298,73 +298,214 @@ func ensureFiles(ctx context.Context, org string, repo *gh_pb.Repository, r *git
 	return nil
 }
 
-func ensureProtectedBranches(ctx context.Context, org string, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
-	if creating && dry {
-		for _, pb := range repo.ProtectedBranches {
-			report.PrintWarn("create protected branch " + pb.Name + " for repo " + repo.Name)
+func ensureProtectedBranches(ctx context.Context, org string, repo *gh_pb.Repository, ghr *github.Repository, dry bool) error {
+	for _, pb := range repo.ProtectedBranches {
+		_, err := clt.GetBranchProtection(ctx, org, repo.Name, pb.Name)
+		if err != nil {
+			if errors.Is(err, client.ErrBranchProtectionNotFound) {
+				err := createProtectedBranch(ctx, org, repo, pb, dry)
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			return err
+		}
+
+		err = UpdateBranchProtection(ctx, org, repo, pb, dry)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createProtectedBranch(ctx context.Context, org string, repo *gh_pb.Repository, branch *gh_pb.Branch, dry bool) error {
+	state := &github.ProtectionRequest{}
+
+	if branch.Protection.RequirePr != nil {
+		state.RequiredPullRequestReviews = &github.PullRequestReviewsEnforcementRequest{}
+	}
+
+	if branch.Protection.ChecksMustPass != nil {
+		state.RequiredStatusChecks = &github.RequiredStatusChecks{
+			Checks: []*github.RequiredStatusCheck{},
+		}
+
+		if len(branch.Protection.RequiredChecks) > 0 {
+			for _, c := range branch.Protection.RequiredChecks {
+				state.RequiredStatusChecks.Checks = append(state.RequiredStatusChecks.Checks, &github.RequiredStatusCheck{
+					Context: c,
+				})
+			}
+		}
+	}
+
+	if dry {
+		report.PrintAdd("create protected branch " + branch.Name + " for repo " + repo.Name)
+		report.Println()
+
+		if state.RequiredPullRequestReviews != nil {
+			report.PrintAdd("setting require pr to '" + fmt.Sprintf("%t", *branch.Protection.RequirePr) + "'")
 			report.Println()
-			continue
+		}
+
+		if state.RequiredStatusChecks != nil {
+			report.PrintAdd("setting require status checks to '" + fmt.Sprintf("%t", *branch.Protection.ChecksMustPass) + "'")
+			report.Println()
+
+			if len(state.RequiredStatusChecks.Checks) > 0 {
+				report.PrintAdd("setting required checks to [" + strings.Join(branch.Protection.RequiredChecks, ", ") + "]")
+				report.Println()
+			}
+		}
+
+		err := ensureSignedCommits(ctx, org, repo, branch, dry)
+		if err != nil {
+			return err
 		}
 
 		return nil
 	}
 
-	// check wanted protected branches
-	for _, pb := range repo.ProtectedBranches {
-		_, err := clt.GetBranchProtection(ctx, org, repo.Name, pb.Name)
-		if err != nil {
-			if errors.Is(err, client.ErrBranchProtectionNotFound) {
-				if dry {
-					report.PrintWarn("create protected branch " + pb.Name + " for repo " + repo.Name)
-					report.Println()
-					continue
-				}
-
-				/*
-					_, err := clt.ProtectBranch(ctx, repo.Name, pb.Name)
-					if err != nil {
-						return handleError(cmd, err)
-						continue
-					}
-				*/
-			}
-
-			return err
-		}
-
-		// TODO: Update existing protections
-		// ensure require pr
-		// ensure checks must pass
-		// ensure required checks
-		// ensure signed commits
-	}
-
-	bs, err := clt.GetBranches(ctx, org, repo.Name)
+	err := clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
 	if err != nil {
 		return err
 	}
 
-	// remove unwanted protected branches
-	for _, b := range bs {
-		found, err := clt.IsBranchProtected(ctx, org, repo.Name, b.GetName())
+	report.PrintWarn("created protected branch " + branch.Name + " for repo " + repo.Name)
+	report.Println()
+
+	if state.RequiredPullRequestReviews != nil {
+		report.PrintAdd("set require pr to '" + fmt.Sprintf("%t", *branch.Protection.RequirePr) + "'")
+		report.Println()
+	}
+
+	if state.RequiredStatusChecks != nil {
+		report.PrintAdd("set require status checks to '" + fmt.Sprintf("%t", *branch.Protection.ChecksMustPass) + "'")
+		report.Println()
+
+		if len(state.RequiredStatusChecks.Checks) > 0 {
+			report.PrintAdd("set required checks to [" + strings.Join(branch.Protection.RequiredChecks, ", ") + "]")
+			report.Println()
+		}
+	}
+
+	err = ensureSignedCommits(ctx, org, repo, branch, dry)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository, branch *gh_pb.Branch, dry bool) error {
+	state := &github.ProtectionRequest{}
+
+	if branch.Protection.RequirePr != nil {
+		state.RequiredPullRequestReviews = &github.PullRequestReviewsEnforcementRequest{}
+	}
+
+	if branch.Protection.ChecksMustPass != nil {
+		state.RequiredStatusChecks = &github.RequiredStatusChecks{
+			Checks: []*github.RequiredStatusCheck{},
+		}
+
+		if len(branch.Protection.RequiredChecks) > 0 {
+			for _, c := range branch.Protection.RequiredChecks {
+				state.RequiredStatusChecks.Checks = append(state.RequiredStatusChecks.Checks, &github.RequiredStatusCheck{
+					Context: c,
+				})
+			}
+		}
+	}
+
+	report.PrintInfo("protected branch '" + branch.Name + "' for repo " + repo.Name)
+	report.Println()
+
+	if dry {
+		if state.RequiredPullRequestReviews != nil {
+			report.PrintAdd("updating require pr to '" + fmt.Sprintf("%t", *branch.Protection.RequirePr) + "'")
+			report.Println()
+		}
+
+		if state.RequiredStatusChecks != nil {
+			report.PrintAdd("updating require status checks to '" + fmt.Sprintf("%t", *branch.Protection.ChecksMustPass) + "'")
+			report.Println()
+
+			if len(state.RequiredStatusChecks.Checks) > 0 {
+				report.PrintAdd("updating required checks to [" + strings.Join(branch.Protection.RequiredChecks, ", ") + "]")
+				report.Println()
+			}
+		}
+
+		err := ensureSignedCommits(ctx, org, repo, branch, dry)
 		if err != nil {
 			return err
 		}
 
-		if found {
-			if dry {
-				report.PrintHeader("delete protected branch " + b.GetName() + " for repo " + repo.Name)
-				report.Println()
-				continue
-			}
+		return nil
+	}
 
-			/*
-				_, err := clt.RemoveBranchProtection(ctx, repo.Name, *p.Name)
-				if err != nil {
-					return handleError(cmd, err)
-				}
-			*/
+	err := clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	if err != nil {
+		return err
+	}
+
+	if state.RequiredPullRequestReviews != nil {
+		report.PrintAdd("updated require pr to '" + fmt.Sprintf("%t", *branch.Protection.RequirePr) + "'")
+		report.Println()
+	}
+
+	if state.RequiredStatusChecks != nil {
+		report.PrintAdd("updated require status checks to '" + fmt.Sprintf("%t", *branch.Protection.ChecksMustPass) + "'")
+		report.Println()
+
+		if len(state.RequiredStatusChecks.Checks) > 0 {
+			report.PrintAdd("updated required checks to [" + strings.Join(branch.Protection.RequiredChecks, ", ") + "]")
+			report.Println()
 		}
+	}
+
+	err = ensureSignedCommits(ctx, org, repo, branch, dry)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ensureSignedCommits(ctx context.Context, org string, repo *gh_pb.Repository, branch *gh_pb.Branch, dry bool) error {
+	if branch.Protection.SignedCommits == nil {
+		return nil
+	}
+
+	ghpb, err := clt.GetBranchProtection(ctx, org, repo.Name, branch.Name)
+	if err != nil {
+		return err
+	}
+
+	if ghpb.GetRequiredSignatures().GetEnabled() != *branch.Protection.SignedCommits {
+		if dry {
+			report.PrintAdd("updating require signed commits to '" + fmt.Sprintf("%t", *branch.Protection.SignedCommits) + "'")
+			report.Println()
+
+			return nil
+		}
+
+		err = clt.RequireSignedCommits(ctx, org, repo.Name, branch.Name)
+		if err != nil {
+			return err
+		}
+
+		report.PrintAdd("updated require signed commits to '" + fmt.Sprintf("%t", *branch.Protection.SignedCommits) + "'")
+		report.Println()
+	} else {
+		report.PrintInfo("require signed commits is '" + fmt.Sprintf("%t", *branch.Protection.SignedCommits) + "'")
+		report.Println()
 	}
 
 	return nil

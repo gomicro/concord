@@ -248,3 +248,39 @@ func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []s
 
 	return nil
 }
+
+func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, protection *github.ProtectionRequest) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+	_, resp, err := c.ghClient.Repositories.UpdateBranchProtection(ctx, org, repo, branch, protection)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrBranchProtectionNotFound
+		}
+
+		return fmt.Errorf("protect branch: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch string) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+	_, resp, err := c.ghClient.Repositories.RequireSignaturesOnProtectedBranch(ctx, org, repo, branch)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrBranchProtectionNotFound
+		}
+
+		return fmt.Errorf("protect branch: signature required: %w", err)
+	}
+
+	return nil
+}
