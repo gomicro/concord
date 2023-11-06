@@ -34,7 +34,6 @@ func NewCheckTeamsCmd(out io.Writer) *cobra.Command {
 }
 
 func checkTeamsRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
 	file := args[0]
 
 	org, err := readManifest(file)
@@ -45,10 +44,12 @@ func checkTeamsRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return teamsRun(ctx, cmd, args, org, true)
+	return teamsRun(cmd, args, org, true)
 }
 
-func teamsRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+func teamsRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+	ctx := cmd.Context()
+
 	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
 		if errors.Is(err, client.ErrOrgNotFound) {
@@ -77,7 +78,7 @@ func teamsRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb
 		report.Println()
 	}
 
-	mts := checkTeams(ctx, org.Teams, tms)
+	mts := checkTeams(org.Teams, tms)
 
 	err = createTeams(ctx, org.Name, mts, dry)
 	if err != nil {
@@ -124,7 +125,7 @@ func teamsRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb
 			report.Println()
 		}
 
-		err = inviteTeamMembers(ctx, ghOrg, t, checkTeamMembers(ctx, expected[strings.ToLower(t.GetName())], ms), dry)
+		err = inviteTeamMembers(ctx, ghOrg, t, checkTeamMembers(expected[strings.ToLower(t.GetName())], ms), dry)
 		if err != nil {
 			return handleError(cmd, err)
 		}
@@ -143,7 +144,7 @@ func managedTeam(manifestTeams []string, name string) bool {
 	return false
 }
 
-func checkTeams(ctx context.Context, manifestTeams []string, githubTeams []*github.Team) []string {
+func checkTeams(manifestTeams []string, githubTeams []*github.Team) []string {
 	missing := []string{}
 
 	for _, mt := range manifestTeams {
@@ -195,7 +196,7 @@ func getExpectedTeamMembers(people []*gh_pb.People) map[string][]string {
 	return expected
 }
 
-func checkTeamMembers(ctx context.Context, expected []string, members []*github.User) []string {
+func checkTeamMembers(expected []string, members []*github.User) []string {
 	missing := []string{}
 
 	for _, em := range expected {

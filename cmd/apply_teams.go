@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"io"
 	"os"
 
@@ -29,7 +28,6 @@ func NewApplyTeamsCmd(out io.Writer) *cobra.Command {
 }
 
 func applyTeamsRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
 	file := args[0]
 
 	org, err := readManifest(file)
@@ -40,5 +38,5 @@ func applyTeamsRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return teamsRun(ctx, cmd, args, org, false)
+	return teamsRun(cmd, args, org, false)
 }

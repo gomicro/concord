@@ -36,7 +36,6 @@ func NewCheckReposCmd(out io.Writer) *cobra.Command {
 }
 
 func checkReposRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
 	file := args[0]
 
 	org, err := readManifest(file)
@@ -47,10 +46,12 @@ func checkReposRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return reposRun(ctx, cmd, args, org, true)
+	return reposRun(cmd, args, org, true)
 }
 
-func reposRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+func reposRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+	ctx := cmd.Context()
+
 	report.Println()
 	report.PrintHeader("Repos")
 	report.Println()

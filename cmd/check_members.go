@@ -32,7 +32,6 @@ func NewCheckMembersCmd(out io.Writer) *cobra.Command {
 }
 
 func checkMembersRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
 	file := args[0]
 
 	org, err := readManifest(file)
@@ -43,10 +42,12 @@ func checkMembersRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	return membersRun(ctx, cmd, args, org, true)
+	return membersRun(cmd, args, org, true)
 }
 
-func membersRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+func membersRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+	ctx := cmd.Context()
+
 	report.Println()
 	report.PrintHeader("Members")
 	report.Println()
@@ -67,7 +68,7 @@ func membersRun(ctx context.Context, cmd *cobra.Command, args []string, org *gh_
 		report.Println()
 	}
 
-	err = inviteMembers(ctx, org.Name, missingMembers(ctx, org.People, ps), dry)
+	err = inviteMembers(ctx, org.Name, missingMembers(org.People, ps), dry)
 	if err != nil {
 		return handleError(cmd, err)
 	}
@@ -85,7 +86,7 @@ func managedMember(manifestMembers []*gh_pb.People, member *github.User) bool {
 	return false
 }
 
-func missingMembers(ctx context.Context, manifestMembers []*gh_pb.People, githubMembers []*github.User) []*gh_pb.People {
+func missingMembers(manifestMembers []*gh_pb.People, githubMembers []*github.User) []*gh_pb.People {
 	missing := []*gh_pb.People{}
 
 	for _, mm := range manifestMembers {

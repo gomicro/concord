@@ -6,7 +6,6 @@ import (
 
 	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 var checkCmd = NewCheckCmd(os.Stdout)
@@ -31,7 +30,6 @@ func NewCheckCmd(out io.Writer) *cobra.Command {
 }
 
 func checkRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
 	file := args[0]
 
 	org, err := readManifest(file)
@@ -42,17 +40,17 @@ func checkRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = membersRun(ctx, cmd, args, org, true)
+	err = membersRun(cmd, args, org, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = teamsRun(ctx, cmd, args, org, true)
+	err = teamsRun(cmd, args, org, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = reposRun(ctx, cmd, args, org, true)
+	err = reposRun(cmd, args, org, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
