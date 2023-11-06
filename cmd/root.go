@@ -43,10 +43,11 @@ func handleError(c *cobra.Command, err error) error {
 }
 
 func setupClient(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
 	tkn := os.Getenv("GITHUB_TOKEN")
 
 	var err error
-	clt, err = client.New(tkn)
+	clt, err = client.New(ctx, tkn)
 	if err != nil {
 		return err
 	}

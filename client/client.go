@@ -22,7 +22,7 @@ type Client struct {
 	rate     *rate.Limiter
 }
 
-func New(tkn string) (*Client, error) {
+func New(ctx context.Context, tkn string) (*Client, error) {
 	pool := trust.New()
 
 	certs, err := pool.CACerts()
@@ -36,7 +36,6 @@ func New(tkn string) (*Client, error) {
 		},
 	}
 
-	ctx := context.Background()
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
 
 	ts := oauth2.StaticTokenSource(
