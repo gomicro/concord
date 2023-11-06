@@ -20,9 +20,11 @@ message Organization {
 
 // Defaults are overriden by the same settings specified in the repository
 message Defaults {
-  optional bool   private            = 1;
+  optional bool   private                   = 1;
   optional string default_branch            = 2 [(buf.validate.field).string.min_len = 1];
-  repeated Branch protected_branches = 3;
+  optional bool   allow_auto_merge          = 3;
+  optional bool   auto_delete_head_branches = 4;
+  repeated Branch protected_branches        = 5;
 }
 
 message People {
@@ -64,9 +66,11 @@ message Repository {
   //repeated Secret secrets  = 6;
 
   // Overrides defaults
-  optional bool   private            = 10;
-  optional string default_branch     = 11;
-  repeated Branch protected_branches = 12;
+  optional bool   private                   = 10;
+  optional string default_branch            = 11 [(buf.validate.field).string.min_len = 1];
+  optional bool   allow_auto_merge          = 12;
+  optional bool   auto_delete_head_branches = 13;
+  repeated Branch protected_branches        = 14;
 }
 
 message Branch {
