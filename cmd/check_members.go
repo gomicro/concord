@@ -8,6 +8,7 @@ import (
 
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
+	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
@@ -33,20 +34,21 @@ func NewCheckMembersCmd(out io.Writer) *cobra.Command {
 
 func checkMembersRun(cmd *cobra.Command, args []string) error {
 	file := args[0]
-
-	org, err := readManifest(file)
-	if err != nil {
-		return handleError(cmd, err)
-	}
+	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
 	report.PrintHeader("Org")
 	report.Println()
 
-	return membersRun(cmd, args, org, true)
+	return membersRun(cmd, args, true)
 }
 
-func membersRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+func membersRun(cmd *cobra.Command, args []string, dry bool) error {
 	ctx := cmd.Context()
+
+	org, err := manifest.OrgFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
 
 	clt, err := client.ClientFromContext(ctx)
 	if err != nil {

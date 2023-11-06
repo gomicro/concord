@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
 )
@@ -28,14 +29,10 @@ func NewApplyMembersCmd(out io.Writer) *cobra.Command {
 
 func applyMembersRun(cmd *cobra.Command, args []string) error {
 	file := args[0]
-
-	org, err := readManifest(file)
-	if err != nil {
-		return handleError(cmd, err)
-	}
+	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
 	report.PrintHeader("Org")
 	report.Println()
 
-	return membersRun(cmd, args, org, false)
+	return membersRun(cmd, args, false)
 }
