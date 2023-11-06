@@ -121,15 +121,27 @@ func fillDefaults(o *gh_pb.Organization) {
 
 	if o.Defaults != nil {
 		for _, r := range o.Repositories {
+			if o.Defaults.Private != nil {
+				if r.Private == nil {
+					r.Private = o.Defaults.Private
+				}
+			}
+
 			if o.Defaults.DefaultBranch != nil {
 				if r.DefaultBranch == nil {
 					r.DefaultBranch = o.Defaults.DefaultBranch
 				}
 			}
 
-			if o.Defaults.Private != nil {
-				if r.Private == nil {
-					r.Private = o.Defaults.Private
+			if o.Defaults.AllowAutoMerge != nil {
+				if r.AllowAutoMerge == nil {
+					r.AllowAutoMerge = o.Defaults.AllowAutoMerge
+				}
+			}
+
+			if o.Defaults.AutoDeleteHeadBranches != nil {
+				if r.AutoDeleteHeadBranches == nil {
+					r.AutoDeleteHeadBranches = o.Defaults.AutoDeleteHeadBranches
 				}
 			}
 
