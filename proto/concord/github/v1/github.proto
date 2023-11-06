@@ -7,9 +7,7 @@ import "buf/validate/validate.proto";
 option go_package = "github.com/gomicro/concord/github/v1;gh_pb";
 
 message Organization {
-  string   name     = 1 [
-    (buf.validate.field).string.min_len = 1
-  ];
+  string   name     = 1 [(buf.validate.field).string.min_len = 1];
   Defaults defaults = 2;
 
   repeated string     teams        = 10;
@@ -22,20 +20,16 @@ message Organization {
 
 // Defaults are overriden by the same settings specified in the repository
 message Defaults {
-  optional bool   private            = 1;
-  optional string default_branch     = 2 [
-    (buf.validate.field).string.min_len = 1
-  ];
-  repeated Branch protected_branches = 3;
+  optional bool   private                   = 1;
+  optional string default_branch            = 2 [(buf.validate.field).string.min_len = 1];
+  optional bool   allow_auto_merge          = 3;
+  optional bool   auto_delete_head_branches = 4;
+  repeated Branch protected_branches        = 5;
 }
 
 message People {
-  string name = 1 [
-    (buf.validate.field).string.min_len = 1
-  ];
-  string username = 2 [
-    (buf.validate.field).string.min_len = 1
-  ];
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  string username = 2 [(buf.validate.field).string.min_len = 1];
 
   repeated string teams = 10;
 }
@@ -56,39 +50,32 @@ message Secret {
 */
 
 message File {
-  string source = 1 [
-    (buf.validate.field).string.min_len = 1
-  ];
-  string destination = 2 [
-    (buf.validate.field).string.min_len = 1
-  ];
+  string source      = 1 [(buf.validate.field).string.min_len = 1];
+  string destination = 2 [(buf.validate.field).string.min_len = 1];
+
   repeated string target_labels = 3;
 }
 
 message Repository {
-  string name = 1 [
-    (buf.validate.field).string.min_len = 1
-  ];
+  string name = 1 [(buf.validate.field).string.min_len = 1];
 
   optional string description = 2;
-  optional bool   archived = 3;
-  repeated string labels   = 4;
-  repeated File   files    = 5;
+  optional bool   archived    = 3;
+  repeated string labels      = 4;
+  repeated File   files       = 5;
   //repeated Secret secrets  = 6;
 
   // Overrides defaults
-  optional bool   private            = 10;
-  optional string default_branch     = 11;
-  repeated Branch protected_branches = 12;
+  optional bool   private                   = 10;
+  optional string default_branch            = 11 [(buf.validate.field).string.min_len = 1];
+  optional bool   allow_auto_merge          = 12;
+  optional bool   auto_delete_head_branches = 13;
+  repeated Branch protected_branches        = 14;
 }
 
 message Branch {
-  string name = 1 [
-    (buf.validate.field).string.min_len = 1
-  ];
-  Protection protection = 2 [
-    (buf.validate.field).required = true
-  ];
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  Protection protection = 2 [(buf.validate.field).required = true];
 }
 
 message Protection {
