@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"io"
 	"os"
 
@@ -31,7 +30,6 @@ func NewApplyCmd(out io.Writer) *cobra.Command {
 }
 
 func applyRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
 	file := args[0]
 
 	org, err := readManifest(file)
@@ -42,17 +40,17 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = membersRun(ctx, cmd, args, org, false)
+	err = membersRun(cmd, args, org, false)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = teamsRun(ctx, cmd, args, org, false)
+	err = teamsRun(cmd, args, org, false)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = reposRun(ctx, cmd, args, org, false)
+	err = reposRun(cmd, args, org, false)
 	if err != nil {
 		return handleError(cmd, err)
 	}
