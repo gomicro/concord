@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
@@ -18,12 +19,11 @@ func init() {
 
 func NewCheckMembersCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "members",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Check members exists in an organization",
-		Long:              `Check members in a configuration against what exists in github`,
-		PersistentPreRunE: setupClient,
-		RunE:              checkMembersRun,
+		Use:   "members",
+		Args:  cobra.ExactArgs(1),
+		Short: "Check members exists in an organization",
+		Long:  `Check members in a configuration against what exists in github`,
+		RunE:  checkMembersRun,
 	}
 
 	cmd.SetOut(out)
@@ -47,6 +47,11 @@ func checkMembersRun(cmd *cobra.Command, args []string) error {
 
 func membersRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
 	ctx := cmd.Context()
+
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
 
 	report.Println()
 	report.PrintHeader("Members")
@@ -107,6 +112,11 @@ func missingMembers(manifestMembers []*gh_pb.People, githubMembers []*github.Use
 }
 
 func inviteMembers(ctx context.Context, org string, members []*gh_pb.People, dry bool) error {
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, m := range members {
 		if dry {
 			report.PrintAdd("invite " + m.Name)

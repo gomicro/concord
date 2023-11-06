@@ -32,7 +32,12 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	// TODO: Read token from config file or env, with env taking precedence
+	tkn := os.Getenv("GITHUB_TOKEN")
+
+	ctx := client.WithClient(context.Background(), tkn)
+
+	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		os.Exit(1)
 	}
 }

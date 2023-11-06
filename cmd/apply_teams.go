@@ -14,12 +14,11 @@ func init() {
 
 func NewApplyTeamsCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "teams",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Apply a teams configuration",
-		Long:              `Apply teams in a configuration against github`,
-		PersistentPreRunE: setupClient,
-		RunE:              applyTeamsRun,
+		Use:   "teams",
+		Args:  cobra.ExactArgs(1),
+		Short: "Apply a teams configuration",
+		Long:  `Apply teams in a configuration against github`,
+		RunE:  applyTeamsRun,
 	}
 
 	cmd.SetOut(out)

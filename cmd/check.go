@@ -16,12 +16,11 @@ func init() {
 
 func NewCheckCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "check",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Check a github configuration",
-		Long:              `Check a configuration against what exists in github`,
-		PersistentPreRunE: setupClient,
-		RunE:              checkRun,
+		Use:   "check",
+		Args:  cobra.ExactArgs(1),
+		Short: "Check a github configuration",
+		Long:  `Check a configuration against what exists in github`,
+		RunE:  checkRun,
 	}
 
 	cmd.SetOut(out)

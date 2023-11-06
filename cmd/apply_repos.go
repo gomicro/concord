@@ -14,12 +14,11 @@ func init() {
 
 func NewApplyReposCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "repos",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Apply a repos configuration",
-		Long:              `Apply repos in a configuration against github`,
-		PersistentPreRunE: setupClient,
-		RunE:              applyReposRun,
+		Use:   "repos",
+		Args:  cobra.ExactArgs(1),
+		Short: "Apply a repos configuration",
+		Long:  `Apply repos in a configuration against github`,
+		RunE:  applyReposRun,
 	}
 
 	cmd.SetOut(out)
