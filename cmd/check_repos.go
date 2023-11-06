@@ -101,6 +101,14 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		edits.DefaultBranch = repo.DefaultBranch
 	}
 
+	if repo.AutoDeleteHeadBranches != nil && ghr.GetDeleteBranchOnMerge() != *repo.AutoDeleteHeadBranches {
+		edits.DeleteBranchOnMerge = repo.AutoDeleteHeadBranches
+	}
+
+	if repo.AllowAutoMerge != nil && ghr.GetAllowAutoMerge() != *repo.AllowAutoMerge {
+		edits.AllowAutoMerge = repo.AllowAutoMerge
+	}
+
 	if dry {
 		if edits.Description != nil {
 			report.PrintAdd("updating description to '" + *edits.Description + "'")
@@ -119,6 +127,16 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 
 		if edits.DefaultBranch != nil {
 			report.PrintAdd("updating default branch to '" + *edits.DefaultBranch + "'")
+			report.Println()
+		}
+
+		if edits.DeleteBranchOnMerge != nil {
+			report.PrintAdd("updating auto delete head branches to '" + fmt.Sprintf("%t", *edits.DeleteBranchOnMerge) + "'")
+			report.Println()
+		}
+
+		if edits.AllowAutoMerge != nil {
+			report.PrintAdd("updating allow auto merge to '" + fmt.Sprintf("%t", *edits.AllowAutoMerge) + "'")
 			report.Println()
 		}
 	} else {
@@ -144,6 +162,16 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 
 		if edits.DefaultBranch != nil {
 			report.PrintAdd("updated default branch to '" + *edits.DefaultBranch + "'")
+			report.Println()
+		}
+
+		if edits.DeleteBranchOnMerge != nil {
+			report.PrintAdd("updated auto delete head branches to '" + fmt.Sprintf("%t", *edits.DeleteBranchOnMerge) + "'")
+			report.Println()
+		}
+
+		if edits.AllowAutoMerge != nil {
+			report.PrintAdd("updated allow auto merge to '" + fmt.Sprintf("%t", *edits.AllowAutoMerge) + "'")
 			report.Println()
 		}
 	}
