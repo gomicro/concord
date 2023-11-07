@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
 )
@@ -16,12 +17,11 @@ func init() {
 
 func NewCheckCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "check",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Check a github configuration",
-		Long:              `Check a configuration against what exists in github`,
-		PersistentPreRunE: setupClient,
-		RunE:              checkRun,
+		Use:   "check",
+		Args:  cobra.ExactArgs(1),
+		Short: "Check a github configuration",
+		Long:  `Check a configuration against what exists in github`,
+		RunE:  checkRun,
 	}
 
 	cmd.SetOut(out)
@@ -31,26 +31,22 @@ func NewCheckCmd(out io.Writer) *cobra.Command {
 
 func checkRun(cmd *cobra.Command, args []string) error {
 	file := args[0]
-
-	org, err := readManifest(file)
-	if err != nil {
-		return handleError(cmd, err)
-	}
+	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = membersRun(cmd, args, org, true)
+	err := membersRun(cmd, args, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = teamsRun(cmd, args, org, true)
+	err = teamsRun(cmd, args, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = reposRun(cmd, args, org, true)
+	err = reposRun(cmd, args, true)
 	if err != nil {
 		return handleError(cmd, err)
 	}

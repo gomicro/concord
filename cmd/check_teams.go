@@ -9,6 +9,7 @@ import (
 
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
+	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
@@ -20,12 +21,11 @@ func init() {
 
 func NewCheckTeamsCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "teams",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Check teams exists in an organization",
-		Long:              `Check teams in a configuration against what exists in github`,
-		PersistentPreRunE: setupClient,
-		RunE:              checkTeamsRun,
+		Use:   "teams",
+		Args:  cobra.ExactArgs(1),
+		Short: "Check teams exists in an organization",
+		Long:  `Check teams in a configuration against what exists in github`,
+		RunE:  checkTeamsRun,
 	}
 
 	cmd.SetOut(out)
@@ -35,20 +35,26 @@ func NewCheckTeamsCmd(out io.Writer) *cobra.Command {
 
 func checkTeamsRun(cmd *cobra.Command, args []string) error {
 	file := args[0]
-
-	org, err := readManifest(file)
-	if err != nil {
-		return handleError(cmd, err)
-	}
+	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
 	report.PrintHeader("Org")
 	report.Println()
 
-	return teamsRun(cmd, args, org, true)
+	return teamsRun(cmd, args, true)
 }
 
-func teamsRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 	ctx := cmd.Context()
+
+	org, err := manifest.OrgFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
 
 	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
@@ -165,6 +171,11 @@ func checkTeams(manifestTeams []string, githubTeams []*github.Team) []string {
 }
 
 func createTeams(ctx context.Context, org string, teams []string, dry bool) error {
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, t := range teams {
 		if dry {
 			report.PrintAdd("create team " + t)
@@ -227,6 +238,11 @@ func managedTeamMember(manifestPeople []*gh_pb.People, name string) bool {
 }
 
 func inviteTeamMembers(ctx context.Context, org *github.Organization, team *github.Team, members []string, dry bool) error {
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, m := range members {
 		if dry {
 			report.PrintWarn("invite " + m + " to team " + *team.Name)

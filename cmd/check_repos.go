@@ -10,6 +10,7 @@ import (
 
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
+	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
@@ -22,12 +23,11 @@ func init() {
 
 func NewCheckReposCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "repos",
-		Args:              cobra.ExactArgs(1),
-		Short:             "Check repos exists in an organization",
-		Long:              `Check repos in a configuration against what exists in github`,
-		PersistentPreRunE: setupClient,
-		RunE:              checkReposRun,
+		Use:   "repos",
+		Args:  cobra.ExactArgs(1),
+		Short: "Check repos exists in an organization",
+		Long:  `Check repos in a configuration against what exists in github`,
+		RunE:  checkReposRun,
 	}
 
 	cmd.SetOut(out)
@@ -37,20 +37,21 @@ func NewCheckReposCmd(out io.Writer) *cobra.Command {
 
 func checkReposRun(cmd *cobra.Command, args []string) error {
 	file := args[0]
-
-	org, err := readManifest(file)
-	if err != nil {
-		return handleError(cmd, err)
-	}
+	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
 	report.PrintHeader("Org")
 	report.Println()
 
-	return reposRun(cmd, args, org, true)
+	return reposRun(cmd, args, true)
 }
 
-func reposRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bool) error {
+func reposRun(cmd *cobra.Command, args []string, dry bool) error {
 	ctx := cmd.Context()
+
+	org, err := manifest.OrgFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
 
 	report.Println()
 	report.PrintHeader("Repos")
@@ -71,6 +72,11 @@ func reposRun(cmd *cobra.Command, args []string, org *gh_pb.Organization, dry bo
 }
 
 func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry bool) error {
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	ghr, err := clt.GetRepo(ctx, org, repo.Name)
 	if err != nil && !errors.Is(err, client.ErrRepoNotFound) {
 		return err
@@ -217,7 +223,12 @@ func ensureTopics(ctx context.Context, org string, repo *gh_pb.Repository, ghr *
 			return nil
 		}
 
-		err := clt.SetRepoTopics(ctx, org, repo.Name, l)
+		clt, err := client.ClientFromContext(ctx)
+		if err != nil {
+			return err
+		}
+
+		err = clt.SetRepoTopics(ctx, org, repo.Name, l)
 		if err != nil {
 			return err
 		}
@@ -286,7 +297,12 @@ func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 			report.Println()
 		}
 	} else {
-		err := clt.CreateRepo(ctx, org, state)
+		clt, err := client.ClientFromContext(ctx)
+		if err != nil {
+			return err
+		}
+
+		err = clt.CreateRepo(ctx, org, state)
 		if err != nil {
 			return err
 		}
@@ -328,6 +344,11 @@ func ensureFiles(ctx context.Context, org string, repo *gh_pb.Repository, r *git
 }
 
 func ensureProtectedBranches(ctx context.Context, org string, repo *gh_pb.Repository, ghr *github.Repository, dry bool) error {
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, pb := range repo.ProtectedBranches {
 		_, err := clt.GetBranchProtection(ctx, org, repo.Name, pb.Name)
 		if err != nil {
@@ -400,7 +421,12 @@ func createProtectedBranch(ctx context.Context, org string, repo *gh_pb.Reposito
 		return nil
 	}
 
-	err := clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
 	if err != nil {
 		return err
 	}
@@ -479,7 +505,12 @@ func UpdateBranchProtection(ctx context.Context, org string, repo *gh_pb.Reposit
 		return nil
 	}
 
-	err := clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
 	if err != nil {
 		return err
 	}
@@ -508,6 +539,11 @@ func UpdateBranchProtection(ctx context.Context, org string, repo *gh_pb.Reposit
 }
 
 func ensureSignedCommits(ctx context.Context, org string, repo *gh_pb.Repository, branch *gh_pb.Branch, dry bool) error {
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	if branch.Protection.SignedCommits == nil {
 		return nil
 	}
