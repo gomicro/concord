@@ -18,13 +18,18 @@ message Organization {
 
 // Defaults are overriden by the same settings specified in the repository
 message Defaults {
-  optional bool   private                   = 1;
-  optional string default_branch            = 2 [(buf.validate.field).string.min_len = 1];
-  optional bool   allow_auto_merge          = 3;
-  optional bool   auto_delete_head_branches = 4;
-  repeated Branch protected_branches        = 5;
-  repeated File       files                 = 6;
-  //repeated Secret     secrets               = 7;
+  optional bool            private                   = 1;
+  optional string          default_branch            = 2 [(buf.validate.field).string.min_len = 1];
+  optional bool            allow_auto_merge          = 3;
+  optional bool            auto_delete_head_branches = 4;
+  repeated Branch          protected_branches        = 5;
+  repeated File            files                     = 6;
+  map<string, Permissions> permissions               = 7[(buf.validate.field).map.keys.string = { in: ["read", "triage", "write", "maintain", "admin"] }];
+  //repeated Secret          secrets                   = 8;
+}
+
+message Permissions {
+  repeated string teams = 1;
 }
 
 message People {
@@ -64,13 +69,14 @@ message Repository {
   repeated string labels      = 4;
 
   // Overrides defaults
-  optional bool   private                   = 10;
-  optional string default_branch            = 11 [(buf.validate.field).string.min_len = 1];
-  optional bool   allow_auto_merge          = 12;
-  optional bool   auto_delete_head_branches = 13;
-  repeated Branch protected_branches        = 14;
-  repeated File   files                     = 15;
-  //repeated Secret secrets                   = 16;
+  optional bool            private                   = 10;
+  optional string          default_branch            = 11 [(buf.validate.field).string.min_len = 1];
+  optional bool            allow_auto_merge          = 12;
+  optional bool            auto_delete_head_branches = 13;
+  repeated Branch          protected_branches        = 14;
+  repeated File            files                     = 15;
+  map<string, Permissions> permissions               = 16[(buf.validate.field).map.keys.string = { in: ["read", "triage", "write", "maintain", "admin"] }];
+  //repeated Secret          secrets                   = 17;
 }
 
 message Branch {
