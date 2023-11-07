@@ -3,6 +3,7 @@ package cmd
 import (
 	"io"
 	"os"
+	"strings"
 
 	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
@@ -18,7 +19,6 @@ func init() {
 func NewApplyCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",
-		Args:  cobra.ExactArgs(1),
 		Short: "Apply an org configuration",
 		Long:  `Apply an org configuration against github`,
 		RunE:  applyRun,
@@ -30,18 +30,20 @@ func NewApplyCmd(out io.Writer) *cobra.Command {
 }
 
 func applyRun(cmd *cobra.Command, args []string) error {
-	file := args[0]
+	file := cmd.Flags().Lookup("file").Value.String()
 	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
+
+	dry := strings.EqualFold(cmd.Flags().Lookup("dry").Value.String(), "true")
 
 	report.PrintHeader("Org")
 	report.Println()
 
-	err := membersRun(cmd, args, false)
+	err := membersRun(cmd, args, dry)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = teamsRun(cmd, args, false)
+	err = teamsRun(cmd, args, dry)
 	if err != nil {
 		return handleError(cmd, err)
 	}

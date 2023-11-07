@@ -10,6 +10,9 @@ import (
 
 func init() {
 	cobra.OnInitialize(initEnvs)
+
+	rootCmd.PersistentFlags().StringP("file", "f", "concord.yml", "Path to a file containing a manifest")
+	rootCmd.PersistentFlags().Bool("dry", false, "Print out the actions that would be taken without actually taking them")
 }
 
 func initEnvs() {
