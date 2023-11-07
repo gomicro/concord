@@ -35,8 +35,6 @@ func NewApplyReposCmd(out io.Writer) *cobra.Command {
 }
 
 func applyReposRun(cmd *cobra.Command, args []string) error {
-	ctx := cmd.Context()
-
 	file := cmd.Flags().Lookup("file").Value.String()
 	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
@@ -44,6 +42,17 @@ func applyReposRun(cmd *cobra.Command, args []string) error {
 
 	report.PrintHeader("Org")
 	report.Println()
+
+	err := reposRun(cmd, args, dry)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	return nil
+}
+
+func reposRun(cmd *cobra.Command, args []string, dry bool) error {
+	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
 	if err != nil {

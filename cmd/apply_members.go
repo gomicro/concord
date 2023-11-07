@@ -32,8 +32,6 @@ func NewApplyMembersCmd(out io.Writer) *cobra.Command {
 }
 
 func applyMembersRun(cmd *cobra.Command, args []string) error {
-	ctx := cmd.Context()
-
 	file := cmd.Flags().Lookup("file").Value.String()
 	cmd.SetContext(manifest.WithManifest(cmd.Context(), file))
 
@@ -41,6 +39,17 @@ func applyMembersRun(cmd *cobra.Command, args []string) error {
 
 	report.PrintHeader("Org")
 	report.Println()
+
+	err := membersRun(cmd, args, dry)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	return nil
+}
+
+func membersRun(cmd *cobra.Command, args []string, dry bool) error {
+	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
 	if err != nil {
