@@ -12,10 +12,8 @@ message Organization {
 
   repeated string     teams        = 10;
   repeated People     people       = 11;
-  //repeated Secret     secrets      = 12;
-  repeated File       files        = 13;
-  repeated Repository repositories = 14;
-  repeated string     labels       = 15;
+  repeated Repository repositories = 12;
+  repeated string     labels       = 13;
 }
 
 // Defaults are overriden by the same settings specified in the repository
@@ -25,6 +23,8 @@ message Defaults {
   optional bool   allow_auto_merge          = 3;
   optional bool   auto_delete_head_branches = 4;
   repeated Branch protected_branches        = 5;
+  repeated File       files                 = 6;
+  //repeated Secret     secrets               = 7;
 }
 
 message People {
@@ -62,8 +62,6 @@ message Repository {
   optional string description = 2;
   optional bool   archived    = 3;
   repeated string labels      = 4;
-  repeated File   files       = 5;
-  //repeated Secret secrets  = 6;
 
   // Overrides defaults
   optional bool   private                   = 10;
@@ -71,6 +69,8 @@ message Repository {
   optional bool   allow_auto_merge          = 12;
   optional bool   auto_delete_head_branches = 13;
   repeated Branch protected_branches        = 14;
+  repeated File   files                     = 15;
+  //repeated Secret secrets                   = 16;
 }
 
 message Branch {

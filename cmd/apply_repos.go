@@ -63,7 +63,6 @@ func reposRun(cmd *cobra.Command, args []string, dry bool) error {
 	report.PrintHeader("Repos")
 	report.Println()
 
-	// ensure all the repos
 	for _, r := range org.Repositories {
 		report.Println()
 		report.PrintHeader(r.Name)
@@ -193,19 +192,15 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		return err
 	}
 
-	// protected branches
 	err = ensureProtectedBranches(ctx, org, repo, ghr, dry)
 	if err != nil {
 		return err
 	}
 
-	/*
-		// files
-		err = ensureFiles(ctx, org, repo, r, creating, dry)
-		if err != nil {
-			return err
-		}
-	*/
+	err = ensureFiles(ctx, org, repo, ghr, dry)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -345,7 +340,11 @@ func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 	return nil
 }
 
-func ensureFiles(ctx context.Context, org string, repo *gh_pb.Repository, r *github.Repository, creating, dry bool) error {
+func ensureFiles(ctx context.Context, org string, repo *gh_pb.Repository, ghr *github.Repository, dry bool) error {
+	// clone down repo
+	// copy file to expected location in repo
+	// if diff, commit and push PR
+
 	return nil
 }
 
