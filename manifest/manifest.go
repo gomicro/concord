@@ -25,53 +25,63 @@ var (
 	ErrManifestOrgRequried = errors.New("organization is required")
 )
 
-func WithManifest(ctx context.Context, file string) context.Context {
-	ctx, cancel := context.WithCancelCause(ctx)
-
+func ReadManifest(file string) (*gh_pb.Organization, error) {
 	p, err := os.Getwd()
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	b, err := os.ReadFile(path.Join(p, file))
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	var v map[string]interface{}
 	err = yaml.Unmarshal(b, &v)
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	if v["organization"] == nil {
-		cancel(ErrManifestOrgRequried)
+		return nil, err
 	}
 
 	j, err := json.Marshal(v["organization"])
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	var m gh_pb.Organization
 	err = protojson.Unmarshal(j, &m)
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	validator, err := protovalidate.New()
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	err = validator.Validate(&m)
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
 	fillDefaults(&m)
 
-	return context.WithValue(ctx, manifestKey, &m)
+	return &m, nil
+}
+
+func WithManifest(ctx context.Context, file string) context.Context {
+	ctx, cancel := context.WithCancelCause(ctx)
+
+	m, err := ReadManifest(file)
+	if err != nil {
+		cancel(err)
+		return ctx
+	}
+
+	return context.WithValue(ctx, manifestKey, m)
 }
 
 func OrgFromContext(ctx context.Context) (*gh_pb.Organization, error) {
