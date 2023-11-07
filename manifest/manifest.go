@@ -92,14 +92,6 @@ func fillDefaults(o *gh_pb.Organization) {
 		}
 	}
 
-	for _, gf := range o.Files {
-		for _, r := range o.Repositories {
-			if !hasDefaultFile(r.Files, gf) {
-				r.Files = append(r.Files, gf)
-			}
-		}
-	}
-
 	if o.Defaults != nil {
 		for _, r := range o.Repositories {
 			if o.Defaults.Private != nil {
@@ -131,6 +123,14 @@ func fillDefaults(o *gh_pb.Organization) {
 					r.ProtectedBranches = append(r.ProtectedBranches, p)
 				} else {
 					fillDefaultProtections(r.ProtectedBranches, p)
+				}
+			}
+
+			for _, gf := range o.Defaults.Files {
+				for _, r := range o.Repositories {
+					if !hasDefaultFile(r.Files, gf) {
+						r.Files = append(r.Files, gf)
+					}
 				}
 			}
 		}
