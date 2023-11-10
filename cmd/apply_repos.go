@@ -220,20 +220,81 @@ func ensurePermissions(ctx context.Context, org string, repo *gh_pb.Repository, 
 		return err
 	}
 
+	gts, err := clt.GetRepoTeams(ctx, org, repo.Name)
+	if err != nil {
+		return err
+	}
+
+	gtps := map[string]string{}
+	for _, gt := range gts {
+		p := gt.GetPermission()
+		switch p {
+		case "pull":
+			gtps[strings.ToLower(gt.GetName())] = "read"
+		case "push":
+			gtps[strings.ToLower(gt.GetName())] = "write"
+		default:
+			gtps[strings.ToLower(gt.GetName())] = p
+		}
+	}
+
 	for p, teams := range repo.Permissions {
 		for _, t := range teams.Teams {
-			if dry {
-				report.PrintAdd("adding repo to team '" + t + "' with '" + p + "'")
+			tp, ok := gtps[strings.ToLower(t)]
+
+			if ok && strings.EqualFold(tp, p) {
+				report.PrintInfo("team '" + t + "' has permission '" + p + "'")
 				report.Println()
+				continue
+			}
+
+			if dry {
+				if ok {
+					report.PrintAdd("updating repo to team '" + t + "' with '" + p + "'")
+				} else {
+					report.PrintAdd("adding repo to team '" + t + "' with '" + p + "'")
+					report.Println()
+				}
 			} else {
 				err := clt.AddRepoToTeam(ctx, org, strings.ToLower(t), repo.Name, p)
 				if err != nil {
 					return err
 				}
 
-				report.PrintAdd("added repo to team '" + t + "' with '" + p + "'")
-				report.Println()
+				if ok {
+					report.PrintAdd("updated repo to team '" + t + "' with '" + p + "'")
+				} else {
+					report.PrintAdd("added repo to team '" + t + "' with '" + p + "'")
+					report.Println()
+				}
 			}
+		}
+	}
+
+	// should remove teams without permissions
+	manTeams := map[string]struct{}{}
+	for _, ts := range repo.Permissions {
+		for _, t := range ts.Teams {
+			manTeams[strings.ToLower(t)] = struct{}{}
+		}
+	}
+
+	for _, gt := range gts {
+		if _, ok := manTeams[strings.ToLower(gt.GetName())]; ok {
+			continue
+		}
+
+		if dry {
+			report.PrintAdd("removing repo from team '" + gt.GetName() + "'")
+			report.Println()
+		} else {
+			err := clt.RemoveRepoFromTeam(ctx, org, gt.GetSlug(), repo.Name)
+			if err != nil {
+				return err
+			}
+
+			report.PrintAdd("removed repo from team '" + gt.GetName() + "'")
+			report.Println()
 		}
 	}
 

@@ -127,6 +127,24 @@ func (c *Client) GetRepo(ctx context.Context, org, name string) (*github.Reposit
 	return repo, nil
 }
 
+func (c *Client) GetRepoTeams(ctx context.Context, org, repo string) ([]*github.Team, error) {
+	c.rate.Wait(ctx) //nolint: errcheck
+	teams, resp, err := c.ghClient.Repositories.ListTeams(ctx, org, repo, nil)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, fmt.Errorf("github: hit rate limit")
+		}
+
+		return nil, fmt.Errorf("get repo teams: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrRepoNotFound
+	}
+
+	return teams, nil
+}
+
 func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string) error {
 	c.rate.Wait(ctx) //nolint: errcheck
 
@@ -150,6 +168,23 @@ func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string
 		}
 
 		return fmt.Errorf("add repo to team: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) RemoveRepoFromTeam(ctx context.Context, org, team, repo string) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+	resp, err := c.ghClient.Teams.RemoveTeamRepoBySlug(ctx, org, team, org, repo)
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrRepoNotFound
+		}
+
+		return fmt.Errorf("remove repo from team: %w", err)
 	}
 
 	return nil
