@@ -127,6 +127,34 @@ func (c *Client) GetRepo(ctx context.Context, org, name string) (*github.Reposit
 	return repo, nil
 }
 
+func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string) error {
+	c.rate.Wait(ctx) //nolint: errcheck
+
+	switch perm {
+	case "read":
+		perm = "pull"
+	case "write":
+		perm = "push"
+	}
+
+	resp, err := c.ghClient.Teams.AddTeamRepoBySlug(ctx, org, team, org, repo, &github.TeamAddTeamRepoOptions{
+		Permission: perm,
+	})
+	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("github: hit rate limit")
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrRepoNotFound
+		}
+
+		return fmt.Errorf("add repo to team: %w", err)
+	}
+
+	return nil
+}
+
 func (c *Client) GetRepoTopics(ctx context.Context, org, name string) ([]string, error) {
 	c.rate.Wait(ctx) //nolint: errcheck
 	topics, resp, err := c.ghClient.Repositories.ListAllTopics(ctx, org, name)

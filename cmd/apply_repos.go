@@ -197,9 +197,44 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		return err
 	}
 
+	err = ensurePermissions(ctx, org, repo, ghr, dry)
+	if err != nil {
+		return err
+	}
+
 	err = ensureFiles(ctx, org, repo, ghr, dry)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func ensurePermissions(ctx context.Context, org string, repo *gh_pb.Repository, ghr *github.Repository, dry bool) error {
+	if len(repo.Permissions) == 0 {
+		return nil
+	}
+
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	for p, teams := range repo.Permissions {
+		for _, t := range teams.Teams {
+			if dry {
+				report.PrintAdd("adding repo to team '" + t + "' with '" + p + "'")
+				report.Println()
+			} else {
+				err := clt.AddRepoToTeam(ctx, org, strings.ToLower(t), repo.Name, p)
+				if err != nil {
+					return err
+				}
+
+				report.PrintAdd("added repo to team '" + t + "' with '" + p + "'")
+				report.Println()
+			}
+		}
 	}
 
 	return nil
