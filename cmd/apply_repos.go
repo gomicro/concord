@@ -67,6 +67,7 @@ func reposRun(cmd *cobra.Command, args []string, dry bool) error {
 		report.Println()
 		report.PrintHeader(r.Name)
 		report.Println()
+
 		err := ensureRepo(ctx, org.Name, r, dry)
 		if err != nil {
 			return handleError(cmd, err)
@@ -87,28 +88,31 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		return err
 	}
 
+	fresh := false
 	if errors.Is(err, client.ErrRepoNotFound) {
 		err = createRepo(ctx, org, repo, dry)
 		if err != nil {
 			return err
 		}
+
+		fresh = true
 	}
 
 	edits := &github.Repository{}
 
-	if repo.Description != nil && !strings.EqualFold(ghr.GetDescription(), *repo.Description) {
+	if !fresh && repo.Description != nil && !strings.EqualFold(ghr.GetDescription(), *repo.Description) {
 		edits.Description = repo.Description
 	}
 
-	if repo.Archived != nil && ghr.GetArchived() != *repo.Archived {
+	if !fresh && repo.Archived != nil && ghr.GetArchived() != *repo.Archived {
 		edits.Archived = repo.Archived
 	}
 
-	if repo.Private != nil && ghr.GetPrivate() != *repo.Private {
+	if !fresh && repo.Private != nil && ghr.GetPrivate() != *repo.Private {
 		edits.Private = repo.Private
 	}
 
-	if repo.DefaultBranch != nil && !strings.EqualFold(ghr.GetDefaultBranch(), *repo.DefaultBranch) {
+	if !fresh && repo.DefaultBranch != nil && !strings.EqualFold(ghr.GetDefaultBranch(), *repo.DefaultBranch) {
 		edits.DefaultBranch = repo.DefaultBranch
 	}
 
@@ -306,8 +310,12 @@ func ensureTopics(ctx context.Context, org string, repo *gh_pb.Repository, ghr *
 		return nil
 	}
 
-	ghl := ghr.Topics
-	slices.Sort(ghl)
+	var ghl []string
+
+	if ghr != nil {
+		ghl = ghr.Topics
+		slices.Sort(ghl)
+	}
 
 	l := repo.Labels
 	slices.Sort(l)
@@ -353,10 +361,6 @@ func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 		state.Archived = repo.Archived
 	}
 
-	if len(repo.Labels) > 0 {
-		state.Topics = repo.Labels
-	}
-
 	if repo.Private != nil {
 		state.Private = repo.Private
 	}
@@ -376,11 +380,6 @@ func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 
 		if state.Archived != nil {
 			report.PrintAdd("setting archived to '" + fmt.Sprintf("%t", *state.Archived) + "'")
-			report.Println()
-		}
-
-		if len(state.Topics) > 0 {
-			report.PrintAdd("setting topics to [" + strings.Join(state.Topics, ", ") + "]")
 			report.Println()
 		}
 
@@ -414,11 +413,6 @@ func createRepo(ctx context.Context, org string, repo *gh_pb.Repository, dry boo
 
 		if state.Archived != nil {
 			report.PrintAdd("set archived to '" + fmt.Sprintf("%t", *state.Archived) + "'")
-			report.Println()
-		}
-
-		if len(state.Topics) > 0 {
-			report.PrintAdd("set topics to [" + strings.Join(state.Topics, ", ") + "]")
 			report.Println()
 		}
 
