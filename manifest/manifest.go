@@ -136,16 +136,8 @@ func fillDefaults(o *gh_pb.Organization) {
 				}
 			}
 
-			if r.Permissions == nil {
-				r.Permissions = make(map[string]*gh_pb.Permissions)
-			}
-
-			for p := range o.Defaults.Permissions {
-				_, found := r.Permissions[p]
-				if !found {
-					r.Permissions[p] = o.Defaults.Permissions[p]
-					continue
-				}
+			if r.Permissions == nil && o.Defaults.Permissions != nil {
+				r.Permissions = o.Defaults.Permissions
 			}
 
 			for _, gf := range o.Defaults.Files {
