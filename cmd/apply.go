@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/gomicro/concord/client"
 	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
@@ -35,10 +37,31 @@ func applyRun(cmd *cobra.Command, args []string) error {
 
 	dry := strings.EqualFold(cmd.Flags().Lookup("dry").Value.String(), "true")
 
+	ctx := cmd.Context()
+
+	org, err := manifest.OrgFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	exists, err := clt.OrgExists(ctx, org.Name)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	if !exists {
+		return handleError(cmd, errors.New("organization does not exist"))
+	}
+
 	report.PrintHeader("Org")
 	report.Println()
 
-	err := membersRun(cmd, args, dry)
+	err = membersRun(cmd, args, dry)
 	if err != nil {
 		return handleError(cmd, err)
 	}

@@ -37,18 +37,6 @@ func applyTeamsRun(cmd *cobra.Command, args []string) error {
 
 	dry := strings.EqualFold(cmd.Flags().Lookup("dry").Value.String(), "true")
 
-	report.PrintHeader("Org")
-	report.Println()
-
-	err := teamsRun(cmd, args, dry)
-	if err != nil {
-		return handleError(cmd, err)
-	}
-
-	return nil
-}
-
-func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
@@ -68,6 +56,30 @@ func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 
 	if !exists {
 		return handleError(cmd, errors.New("organization does not exist"))
+	}
+
+	report.PrintHeader("Org")
+	report.Println()
+
+	err = teamsRun(cmd, args, dry)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	return nil
+}
+
+func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
+	ctx := cmd.Context()
+
+	org, err := manifest.OrgFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
 	}
 
 	report.Println()
