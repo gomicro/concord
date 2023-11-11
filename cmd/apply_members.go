@@ -86,28 +86,61 @@ func membersRun(cmd *cobra.Command, args []string, dry bool) error {
 	report.PrintHeader("Members")
 	report.Println()
 
-	// check people exist
-	ps, err := clt.GetMembers(ctx, org.Name)
+	ms, err := clt.GetMembers(ctx, org.Name)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	for _, p := range ps {
-		if !managedMember(org.People, p) {
-			report.PrintWarn(p.GetLogin() + " exists in github but not in manifest")
-		} else {
-			report.PrintInfo(p.GetLogin() + " exists in github")
-		}
+	missing, managed, unmanaged := getMemberBreakdown(org.People, ms)
 
+	for _, m := range missing {
+		clt.InviteMember(ctx, org.Name, m)
+	}
+
+	for _, m := range managed {
+		report.PrintInfo(m + " exists in github")
 		report.Println()
 	}
 
-	err = inviteMembers(ctx, org.Name, missingMembers(org.People, ps), dry)
-	if err != nil {
-		return handleError(cmd, err)
+	for _, m := range unmanaged {
+		report.PrintWarn(m + " exists in github but not in manifest")
+		report.Println()
+	}
+
+	if !dry {
+		err = clt.Apply()
+		if err != nil {
+			return handleError(cmd, err)
+		}
 	}
 
 	return nil
+}
+
+func getMemberBreakdown(people []*gh_pb.People, members []*github.User) (missing []string, managed []string, unmanaged []string) {
+	for _, m := range members {
+		if managedMember(people, m) {
+			managed = append(managed, *m.Login)
+		} else {
+			unmanaged = append(unmanaged, *m.Login)
+		}
+	}
+
+	for _, p := range people {
+		found := false
+		for _, m := range members {
+			if strings.EqualFold(p.Username, m.GetLogin()) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			missing = append(missing, p.Username)
+		}
+	}
+
+	return
 }
 
 func managedMember(manifestMembers []*gh_pb.People, member *github.User) bool {
@@ -118,49 +151,4 @@ func managedMember(manifestMembers []*gh_pb.People, member *github.User) bool {
 	}
 
 	return false
-}
-
-func missingMembers(manifestMembers []*gh_pb.People, githubMembers []*github.User) []*gh_pb.People {
-	missing := []*gh_pb.People{}
-
-	for _, mm := range manifestMembers {
-		found := false
-		for _, gm := range githubMembers {
-			if strings.EqualFold(mm.Username, *gm.Login) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			missing = append(missing, mm)
-		}
-	}
-
-	return missing
-}
-
-func inviteMembers(ctx context.Context, org string, members []*gh_pb.People, dry bool) error {
-	clt, err := client.ClientFromContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, m := range members {
-		if dry {
-			report.PrintAdd("invite " + m.Name)
-			report.Println()
-			continue
-		}
-
-		err := clt.InviteMember(ctx, org, m.Name)
-		if err != nil {
-			return err
-		}
-
-		report.PrintAdd("invited " + m.Name)
-		report.Println()
-	}
-
-	return nil
 }
