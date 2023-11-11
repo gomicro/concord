@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gomicro/concord/report"
 	"github.com/gomicro/trust"
 	"github.com/google/go-github/v56/github"
 	"golang.org/x/oauth2"
@@ -25,6 +26,8 @@ var (
 type Client struct {
 	ghClient *github.Client
 	rate     *rate.Limiter
+
+	stack []func() error
 }
 
 func New(ctx context.Context, tkn string) (*Client, error) {
@@ -58,4 +61,26 @@ func New(ctx context.Context, tkn string) (*Client, error) {
 		ghClient: github.NewClient(oauth2.NewClient(ctx, ts)),
 		rate:     rl,
 	}, nil
+}
+
+func (c *Client) Add(fn func() error) {
+	c.stack = append(c.stack, fn)
+}
+
+func (c *Client) Apply() error {
+	if len(c.stack) == 0 {
+		return nil
+	}
+
+	report.PrintHeader("Applying")
+	report.Println()
+
+	for _, fn := range c.stack {
+		err := fn()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
