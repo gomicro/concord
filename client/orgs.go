@@ -32,6 +32,19 @@ func (c *Client) GetOrg(ctx context.Context, orgName string) (*github.Organizati
 	return org, nil
 }
 
+func (c *Client) OrgExists(ctx context.Context, orgName string) (bool, error) {
+	_, err := c.GetOrg(ctx, orgName)
+	if err != nil {
+		if errors.Is(err, ErrOrgNotFound) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (c *Client) GetMembers(ctx context.Context, orgName string) ([]*github.User, error) {
 	members, _, err := c.ghClient.Organizations.ListMembers(ctx, orgName, nil)
 	if err != nil {

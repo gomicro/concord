@@ -62,13 +62,13 @@ func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 		return handleError(cmd, err)
 	}
 
-	ghOrg, err := clt.GetOrg(ctx, org.Name)
+	exists, err := clt.OrgExists(ctx, org.Name)
 	if err != nil {
-		if errors.Is(err, client.ErrOrgNotFound) {
-			return errors.New("org does not exist")
-		}
-
 		return handleError(cmd, err)
+	}
+
+	if !exists {
+		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
 	report.Println()
