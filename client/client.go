@@ -72,6 +72,7 @@ func (c *Client) Apply() error {
 		return nil
 	}
 
+	report.Println()
 	report.PrintHeader("Applying")
 	report.Println()
 

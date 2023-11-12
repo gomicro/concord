@@ -77,6 +77,10 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if !dry {
+		if !confirm(cmd, "Apply changes? (y/n): ") {
+			return nil
+		}
+
 		err = clt.Apply()
 		if err != nil {
 			return handleError(cmd, err)
