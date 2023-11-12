@@ -7,19 +7,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gomicro/concord/report"
 	"github.com/gomicro/trust"
 	"github.com/google/go-github/v56/github"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
 )
 
-type ctxKey string
-
 const (
 	BurstLimit        = 10
 	RequestsPerSecond = 10
-
-	clientConextKey ctxKey = "client"
 )
 
 var (
@@ -29,6 +26,8 @@ var (
 type Client struct {
 	ghClient *github.Client
 	rate     *rate.Limiter
+
+	stack []func() error
 }
 
 func New(ctx context.Context, tkn string) (*Client, error) {
@@ -64,22 +63,24 @@ func New(ctx context.Context, tkn string) (*Client, error) {
 	}, nil
 }
 
-func WithClient(ctx context.Context, tkn string) context.Context {
-	ctx, cancel := context.WithCancelCause(ctx)
-
-	c, err := New(ctx, tkn)
-	if err != nil {
-		cancel(err)
-	}
-
-	return context.WithValue(ctx, clientConextKey, c)
+func (c *Client) Add(fn func() error) {
+	c.stack = append(c.stack, fn)
 }
 
-func ClientFromContext(ctx context.Context) (*Client, error) {
-	c, ok := ctx.Value(clientConextKey).(*Client)
-	if !ok {
-		return nil, ErrClientNotFound
+func (c *Client) Apply() error {
+	if len(c.stack) == 0 {
+		return nil
 	}
 
-	return c, nil
+	report.PrintHeader("Applying")
+	report.Println()
+
+	for _, fn := range c.stack {
+		err := fn()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

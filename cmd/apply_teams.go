@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"io"
 	"os"
@@ -38,18 +37,6 @@ func applyTeamsRun(cmd *cobra.Command, args []string) error {
 
 	dry := strings.EqualFold(cmd.Flags().Lookup("dry").Value.String(), "true")
 
-	report.PrintHeader("Org")
-	report.Println()
-
-	err := teamsRun(cmd, args, dry)
-	if err != nil {
-		return handleError(cmd, err)
-	}
-
-	return nil
-}
-
-func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
@@ -62,12 +49,43 @@ func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 		return handleError(cmd, err)
 	}
 
-	ghOrg, err := clt.GetOrg(ctx, org.Name)
+	exists, err := clt.OrgExists(ctx, org.Name)
 	if err != nil {
-		if errors.Is(err, client.ErrOrgNotFound) {
-			return errors.New("org does not exist")
-		}
+		return handleError(cmd, err)
+	}
 
+	if !exists {
+		return handleError(cmd, errors.New("organization does not exist"))
+	}
+
+	report.PrintHeader("Org")
+	report.Println()
+
+	err = teamsRun(cmd, args)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	if !dry {
+		err = clt.Apply()
+		if err != nil {
+			return handleError(cmd, err)
+		}
+	}
+
+	return nil
+}
+
+func teamsRun(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
+	org, err := manifest.OrgFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
 		return handleError(cmd, err)
 	}
 
@@ -80,70 +98,89 @@ func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 		return handleError(cmd, err)
 	}
 
-	for _, t := range tms {
-		if !managedTeam(org.Teams, t.GetName()) {
-			report.PrintWarn(t.GetName() + " exists in github but not in manifest")
-		} else {
-			report.PrintInfo(t.GetName() + " exists in github")
+	missing, managed, unmanaged := getTeamsBreakdown(org.Teams, tms)
+
+	for _, mt := range missing {
+		report.PrintHeader(mt)
+		report.Println()
+
+		clt.CreateTeam(ctx, org.Name, mt)
+
+		missing, _, _ := getTeamMembersBreakdown(mt, org.People, nil)
+
+		for _, m := range missing {
+			clt.InviteTeamMember(ctx, org.GetName(), mt, m)
 		}
 
 		report.Println()
 	}
 
-	mts := checkTeams(org.Teams, tms)
-
-	err = createTeams(ctx, org.Name, mts, dry)
-	if err != nil {
-		return handleError(cmd, err)
-	}
-
-	report.Println()
-	report.PrintHeader("Team Memberships")
-	report.Println()
-
-	if dry {
-		// fill in missing teams as fakes
-		for i := range mts {
-			tms = append(tms, &github.Team{
-				Name: &mts[i],
-				ID:   github.Int64(-1),
-			})
-		}
-	} else {
-		tms, err = clt.GetTeams(ctx, org.Name)
-		if err != nil {
-			return handleError(cmd, err)
-		}
-	}
-
-	expected := getExpectedTeamMembers(org.People)
-
-	for _, t := range tms {
-		report.PrintHeader(t.GetName())
+	for _, mt := range managed {
+		report.PrintHeader(mt)
 		report.Println()
 
-		ms, err := clt.GetTeamMembers(ctx, ghOrg.GetID(), t.GetID())
+		report.PrintInfo("team exists in github")
+		report.Println()
+
+		ms, err := clt.GetTeamMembers(ctx, org.Name, mt)
 		if err != nil {
 			return handleError(cmd, err)
 		}
 
-		for _, m := range ms {
-			if !managedTeamMember(org.People, m.GetLogin()) {
-				report.PrintWarn(m.GetLogin() + " exists in team but not in manifest")
-			} else {
-				report.PrintInfo(m.GetLogin() + " exists in team")
-			}
+		missing, managed, unmanaged := getTeamMembersBreakdown(mt, org.People, ms)
+		for _, m := range missing {
+			clt.InviteTeamMember(ctx, org.GetName(), mt, m)
+		}
 
+		for _, m := range managed {
+			report.PrintInfo(m + " exists in team")
 			report.Println()
 		}
 
-		err = inviteTeamMembers(ctx, ghOrg, t, checkTeamMembers(expected[strings.ToLower(t.GetName())], ms), dry)
-		if err != nil {
-			return handleError(cmd, err)
+		for _, m := range unmanaged {
+			report.PrintWarn(m + " exists in team but not in manifest")
+			report.Println()
 		}
+
+		report.Println()
+	}
+
+	for _, mt := range unmanaged {
+		report.PrintHeader(mt)
+		report.Println()
+
+		report.PrintWarn("team exists in github but not in manifest")
+		report.Println()
+
+		report.Println()
 	}
 
 	return nil
+}
+
+func getTeamsBreakdown(manifest []string, teams []*github.Team) (missing []string, managed []string, unmanaged []string) {
+	for _, t := range teams {
+		if managedTeam(manifest, t.GetName()) {
+			managed = append(managed, t.GetName())
+		} else {
+			unmanaged = append(unmanaged, t.GetName())
+		}
+	}
+
+	for _, m := range manifest {
+		found := false
+		for _, t := range teams {
+			if strings.EqualFold(m, t.GetName()) {
+				found = true
+			}
+		}
+
+		if !found {
+			missing = append(missing, m)
+		}
+	}
+
+	return
 }
 
 func managedTeam(manifestTeams []string, name string) bool {
@@ -156,81 +193,33 @@ func managedTeam(manifestTeams []string, name string) bool {
 	return false
 }
 
-func checkTeams(manifestTeams []string, githubTeams []*github.Team) []string {
-	missing := []string{}
-
-	for _, mt := range manifestTeams {
-		found := false
-		for _, gt := range githubTeams {
-			if strings.EqualFold(mt, *gt.Name) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			missing = append(missing, mt)
+func getTeamMembersBreakdown(team string, people []*gh_pb.People, members []*github.User) (missing []string, managed []string, unmanaged []string) {
+	for _, m := range members {
+		if managedTeamMember(people, m.GetLogin()) {
+			managed = append(managed, m.GetLogin())
+		} else {
+			unmanaged = append(unmanaged, m.GetLogin())
 		}
 	}
-
-	return missing
-}
-
-func createTeams(ctx context.Context, org string, teams []string, dry bool) error {
-	clt, err := client.ClientFromContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range teams {
-		if dry {
-			report.PrintAdd("create team " + t)
-			report.Println()
-			continue
-		}
-
-		err := clt.CreateTeam(ctx, org, t)
-		if err != nil {
-			return err
-		}
-
-		report.PrintSuccess("created team " + t)
-		report.Println()
-	}
-
-	return nil
-}
-
-func getExpectedTeamMembers(people []*gh_pb.People) map[string][]string {
-	expected := map[string][]string{}
 
 	for _, p := range people {
-		for _, t := range p.Teams {
-			expected[strings.ToLower(t)] = append(expected[strings.ToLower(t)], p.Username)
-		}
-	}
-
-	return expected
-}
-
-func checkTeamMembers(expected []string, members []*github.User) []string {
-	missing := []string{}
-
-	for _, em := range expected {
 		found := false
-		for _, gm := range members {
-			if strings.EqualFold(em, *gm.Login) {
+		for _, m := range members {
+			if strings.EqualFold(p.Username, m.GetLogin()) {
 				found = true
-				break
 			}
 		}
 
 		if !found {
-			missing = append(missing, em)
+			for _, t := range p.Teams {
+				if strings.EqualFold(t, team) {
+					missing = append(missing, p.Username)
+				}
+			}
 		}
 	}
 
-	return missing
+	return
 }
 
 func managedTeamMember(manifestPeople []*gh_pb.People, name string) bool {
@@ -241,28 +230,4 @@ func managedTeamMember(manifestPeople []*gh_pb.People, name string) bool {
 	}
 
 	return false
-}
-
-func inviteTeamMembers(ctx context.Context, org *github.Organization, team *github.Team, members []string, dry bool) error {
-	clt, err := client.ClientFromContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, m := range members {
-		if dry {
-			report.PrintWarn("invite " + m + " to team " + *team.Name)
-			report.Println()
-			continue
-		}
-
-		err := clt.InviteTeamMember(ctx, org.GetID(), team.GetID(), m)
-		if err != nil {
-			return err
-		}
-		report.PrintSuccess("invited " + m + " to team " + *team.Name)
-		report.Println()
-	}
-
-	return nil
 }
