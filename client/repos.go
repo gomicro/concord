@@ -515,27 +515,27 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 			return fmt.Errorf("protect branch: %w", err)
 		}
 
-		report.PrintWarn("protected branch " + branch)
+		report.PrintSuccess("protected branch " + branch)
 		report.Println()
 
 		if protection.RequiredPullRequestReviews != nil {
-			report.PrintAdd("set require pr to 'true'")
+			report.PrintSuccess("set require pr to 'true'")
 			report.Println()
 		} else {
-			report.PrintAdd("set require pr to 'false'")
+			report.PrintSuccess("set require pr to 'false'")
 			report.Println()
 		}
 
 		if protection.RequiredStatusChecks != nil {
-			report.PrintAdd("set require status checks to 'true'")
+			report.PrintSuccess("set require status checks to 'true'")
 			report.Println()
 
 			if len(checks) > 0 {
-				report.PrintAdd("set required checks to [" + strings.Join(checks, ", ") + "]")
+				report.PrintSuccess("set required checks to [" + strings.Join(checks, ", ") + "]")
 				report.Println()
 			}
 		} else {
-			report.PrintAdd("set require status checks to 'false'")
+			report.PrintSuccess("set require status checks to 'false'")
 			report.Println()
 		}
 
@@ -562,7 +562,7 @@ func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch str
 			return fmt.Errorf("protect branch: signature required: %w", err)
 		}
 
-		report.PrintAdd("updated require signed commits to 'true'")
+		report.PrintSuccess("updated require signed commits to 'true'")
 		report.Println()
 
 		return nil
