@@ -61,15 +61,22 @@ func applyTeamsRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = teamsRun(cmd, args, dry)
+	err = teamsRun(cmd, args)
 	if err != nil {
 		return handleError(cmd, err)
+	}
+
+	if !dry {
+		err = clt.Apply()
+		if err != nil {
+			return handleError(cmd, err)
+		}
 	}
 
 	return nil
 }
 
-func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
+func teamsRun(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
@@ -146,13 +153,6 @@ func teamsRun(cmd *cobra.Command, args []string, dry bool) error {
 		report.Println()
 
 		report.Println()
-	}
-
-	if !dry {
-		err = clt.Apply()
-		if err != nil {
-			return handleError(cmd, err)
-		}
 	}
 
 	return nil

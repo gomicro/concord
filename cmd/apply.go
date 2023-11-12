@@ -61,19 +61,26 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = membersRun(cmd, args, dry)
+	err = membersRun(cmd, args)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = teamsRun(cmd, args, dry)
+	err = teamsRun(cmd, args)
 	if err != nil {
 		return handleError(cmd, err)
 	}
 
-	err = reposRun(cmd, args, false)
+	err = reposRun(cmd, args)
 	if err != nil {
 		return handleError(cmd, err)
+	}
+
+	if !dry {
+		err = clt.Apply()
+		if err != nil {
+			return handleError(cmd, err)
+		}
 	}
 
 	return nil

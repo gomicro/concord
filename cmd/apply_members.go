@@ -61,15 +61,22 @@ func applyMembersRun(cmd *cobra.Command, args []string) error {
 	report.PrintHeader("Org")
 	report.Println()
 
-	err = membersRun(cmd, args, dry)
+	err = membersRun(cmd, args)
 	if err != nil {
 		return handleError(cmd, err)
+	}
+
+	if !dry {
+		err = clt.Apply()
+		if err != nil {
+			return handleError(cmd, err)
+		}
 	}
 
 	return nil
 }
 
-func membersRun(cmd *cobra.Command, args []string, dry bool) error {
+func membersRun(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
@@ -105,13 +112,6 @@ func membersRun(cmd *cobra.Command, args []string, dry bool) error {
 	for _, m := range unmanaged {
 		report.PrintWarn(m + " exists in github but not in manifest")
 		report.Println()
-	}
-
-	if !dry {
-		err = clt.Apply()
-		if err != nil {
-			return handleError(cmd, err)
-		}
 	}
 
 	return nil
