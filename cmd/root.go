@@ -16,6 +16,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringP("file", "f", "concord.yml", "Path to a file containing a manifest")
 	rootCmd.PersistentFlags().Bool("dry", false, "Print out the actions that would be taken without actually taking them")
+	rootCmd.PersistentFlags().Bool("force", false, "Force the action to be taken without prompting for confirmation")
 }
 
 func initEnvs() {
@@ -43,6 +44,10 @@ func handleError(c *cobra.Command, err error) error {
 }
 
 func confirm(cmd *cobra.Command, msg string) bool {
+	if strings.EqualFold(cmd.Flags().Lookup("force").Value.String(), "true") {
+		return true
+	}
+
 	report.Println()
 	report.PrintInfo(msg)
 
