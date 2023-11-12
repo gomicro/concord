@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"os"
+	"strings"
 
 	"github.com/gomicro/concord/client"
+	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
 )
 
@@ -37,4 +40,25 @@ func Execute() {
 func handleError(c *cobra.Command, err error) error {
 	c.SilenceUsage = true
 	return err
+}
+
+func confirm(cmd *cobra.Command, msg string) bool {
+	report.Println()
+	report.PrintInfo(msg)
+
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		s, _ := reader.ReadString('\n')
+		s = strings.ToLower(strings.TrimSuffix(s, "\n"))
+
+		if strings.Compare(s, "n") == 0 {
+			return false
+		} else if strings.Compare(s, "y") == 0 {
+			break
+		} else {
+			report.PrintInfo(msg)
+		}
+	}
+
+	return true
 }
