@@ -222,6 +222,10 @@ func buildRepoState(repo *gh_pb.Repository) *github.Repository {
 }
 
 func setTeamPermissions(ctx context.Context, org string, repo *gh_pb.Repository, ghr *github.Repository) error {
+	if len(repo.Permissions) == 0 {
+		return nil
+	}
+
 	clt, err := client.ClientFromContext(ctx)
 	if err != nil {
 		return err
