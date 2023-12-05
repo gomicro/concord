@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/gomicro/trust"
 	"github.com/spf13/cobra"
@@ -25,7 +26,6 @@ const (
 )
 
 var (
-	reapprove    bool
 	clientID     string
 	clientSecret string
 )
@@ -38,7 +38,7 @@ func NewAuthCmd(out io.Writer, browserFunc func(string) error) *cobra.Command {
 		RunE:  authRun(browserFunc),
 	}
 
-	cmd.Flags().BoolVarP(&reapprove, "force", "f", false, "force concord to reauth")
+	cmd.Flags().BoolP("reauth", "r", false, "force concord to reauth")
 	cmd.SetOut(out)
 
 	return cmd
@@ -89,7 +89,7 @@ func authRun(browserFunc func(string) error) func(*cobra.Command, []string) erro
 		go startServer(ctx, listener, conf, token)
 
 		var opts []oauth2.AuthCodeOption
-		if reapprove {
+		if strings.EqualFold(cmd.Flag("reauth").Value.String(), "true") {
 			opts = []oauth2.AuthCodeOption{oauth2.AccessTypeOffline, oauth2.ApprovalForce}
 		} else {
 			opts = []oauth2.AuthCodeOption{oauth2.AccessTypeOffline}
