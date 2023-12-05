@@ -76,7 +76,10 @@ func authRun(browserFunc func(string) error) func(*cobra.Command, []string) erro
 		conf := &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			Scopes:       []string{"repo"},
+			Scopes: []string{
+				"repo",      // Grants full access to public and private repositories including read and write access to code, commit statuses, repository invitations, collaborators, deployment statuses, and repository webhooks.
+				"admin:org", // Fully manage the organization and its teams, projects, and memberships.
+			},
 			Endpoint: oauth2.Endpoint{
 				AuthURL:  "https://github.com/login/oauth/authorize",
 				TokenURL: "https://github.com/login/oauth/access_token",
