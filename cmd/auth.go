@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/gomicro/concord/config"
 	"github.com/gomicro/trust"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -106,24 +107,22 @@ func authRun(browserFunc func(string) error) func(*cobra.Command, []string) erro
 			return fmt.Errorf("auth: %w", err)
 		}
 
-		//tkn := <-token
+		tkn := <-token
 		close(token)
 
-		/*
-			c, err := config.ParseFromFile()
-			if err != nil {
-				cmd.SilenceUsage = true
-				return fmt.Errorf("auth: %w", err)
-			}
+		c, err := config.ParseFromFile()
+		if err != nil {
+			cmd.SilenceUsage = true
+			return fmt.Errorf("auth: %w", err)
+		}
 
-			c.Github.Token = tkn
+		c.Github.Token = tkn
 
-			err = c.WriteFile()
-			if err != nil {
-				cmd.SilenceUsage = true
-				return fmt.Errorf("auth: %w", err)
-			}
-		*/
+		err = c.WriteToFile()
+		if err != nil {
+			cmd.SilenceUsage = true
+			return fmt.Errorf("auth: %w", err)
+		}
 
 		return nil
 	}
