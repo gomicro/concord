@@ -473,9 +473,19 @@ func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []s
 	})
 }
 
-func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, protection *github.ProtectionRequest) {
-	report.PrintAdd("protecting branch " + branch)
-	report.Println()
+func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, protection *github.ProtectionRequest) error {
+	ghpb, err := c.GetBranchProtection(ctx, org, repo, branch)
+	if err != nil && !errors.Is(err, ErrBranchProtectionNotFound) {
+		return err
+	}
+
+	if ghpb != nil {
+		report.PrintInfo(branch + " branch protected")
+		report.Println()
+	} else {
+		report.PrintAdd("protecting branch " + branch)
+		report.Println()
+	}
 
 	if protection.RequiredPullRequestReviews != nil {
 		report.PrintAdd("setting require pr to 'true'")
@@ -541,6 +551,8 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 
 		return nil
 	})
+
+	return nil
 }
 
 func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch string) {

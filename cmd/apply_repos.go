@@ -285,7 +285,10 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 		return err
 	}
 
-	clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	if err != nil {
+		return err
+	}
 
 	if branch.GetProtection() != nil {
 		if ghpb.GetRequiredSignatures().GetEnabled() != branch.GetProtection().GetSignedCommits() {
