@@ -180,17 +180,29 @@ func authHandler(ctx context.Context, conf *oauth2.Config, token chan string) fu
 func openBrowser(url string) error {
 	ctx := context.Background()
 
+	var perr error
 	switch runtime.GOOS {
 	case "linux":
 		err := exec.CommandContext(ctx, "xdg-open", url).Start()
-		return fmt.Errorf("open browser: linux: %w", err)
+		if err != nil {
+			perr = fmt.Errorf("open browser: linux: %w", err)
+		}
+
 	case "windows":
 		err := exec.CommandContext(ctx, "rundll32", "url.dll,FileProtocolHandler", url).Start()
-		return fmt.Errorf("open browser: windows: %w", err)
+		if perr != nil {
+			perr = fmt.Errorf("open browser: windows: %w", err)
+		}
+
 	case "darwin":
 		err := exec.CommandContext(ctx, "open", url).Start()
-		return fmt.Errorf("open browser: darwin: %w", err)
+		if perr != nil {
+			perr = fmt.Errorf("open browser: darwin: %w", err)
+		}
+
 	default:
-		return fmt.Errorf("open browser: unsupported platform")
+		perr = fmt.Errorf("open browser: unsupported platform")
 	}
+
+	return perr
 }
