@@ -2,7 +2,9 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -31,9 +33,9 @@ func ParseFromFile() (*File, error) {
 }
 
 func parseFromFile(configFile string) (*File, error) {
-	f, err := os.OpenFile(configFile, os.O_RDONLY, 0600)
+	f, err := os.OpenFile(configFile, os.O_CREATE|os.O_RDONLY, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("parse: %w", err)
+		return nil, fmt.Errorf("parse: open: %w", err)
 	}
 
 	defer f.Close()
@@ -41,8 +43,8 @@ func parseFromFile(configFile string) (*File, error) {
 	var c File
 
 	err = yaml.NewDecoder(f).Decode(&c)
-	if err != nil {
-		return nil, fmt.Errorf("parse: %w", err)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("parse: decode: %w", err)
 	}
 
 	return &c, nil
