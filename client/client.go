@@ -21,6 +21,7 @@ const (
 
 var (
 	ErrClientNotFound = errors.New("client not found in context")
+	ErrTokenEmpty     = errors.New("token is empty; please run `concord auth` or set the GITHUB_TOKEN environment variable")
 )
 
 type Client struct {
@@ -31,11 +32,15 @@ type Client struct {
 }
 
 func New(ctx context.Context, tkn string) (*Client, error) {
+	if tkn == "" {
+		return nil, ErrTokenEmpty
+	}
+
 	pool := trust.New()
 
 	certs, err := pool.CACerts()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create cert pool: %v\n", err.Error())
+		return nil, fmt.Errorf("failed to create cert pool: %w", err)
 	}
 
 	httpClient := &http.Client{
