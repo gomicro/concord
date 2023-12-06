@@ -3,10 +3,12 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/gomicro/concord/client"
+	"github.com/gomicro/concord/config"
 	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
 )
@@ -28,12 +30,22 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	// TODO: Read token from config file or env, with env taking precedence
+	c, err := config.ParseFromFile()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+		os.Exit(1)
+	}
+
 	tkn := os.Getenv("GITHUB_TOKEN")
 
-	ctx := client.WithClient(context.Background(), tkn)
+	if tkn != "" {
+		c.Github.Token = tkn
+	}
+
+	ctx := client.WithClient(context.Background(), c.Github.Token)
 
 	if err := rootCmd.ExecuteContext(ctx); err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
