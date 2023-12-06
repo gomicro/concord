@@ -29,13 +29,18 @@ type Github struct {
 }
 
 func ParseFromFile() (*File, error) {
-	return parseFromFile(configFile)
+	file, err := GetConfigFile()
+	if err != nil {
+		return nil, fmt.Errorf("parse: %w", err)
+	}
+
+	return parseFromFile(file)
 }
 
-func parseFromFile(configFile string) (*File, error) {
-	f, err := os.OpenFile(configFile, os.O_CREATE|os.O_RDONLY, 0600)
+func parseFromFile(file string) (*File, error) {
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_RDONLY, configFileMask)
 	if err != nil {
-		return nil, fmt.Errorf("parse: open: %w", err)
+		return nil, fmt.Errorf("open: %w", err)
 	}
 
 	defer f.Close()
@@ -44,33 +49,38 @@ func parseFromFile(configFile string) (*File, error) {
 
 	err = yaml.NewDecoder(f).Decode(&c)
 	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("parse: decode: %w", err)
+		return nil, fmt.Errorf("decode: %w", err)
 	}
 
 	return &c, nil
 }
 
 func (c *File) WriteToFile() error {
-	return c.writeToFile(configFile)
-}
-
-func (c *File) writeToFile(configFile string) error {
-	f, err := os.OpenFile(configFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	file, err := GetConfigFile()
 	if err != nil {
 		return fmt.Errorf("write: %w", err)
+	}
+
+	return c.writeToFile(file)
+}
+
+func (c *File) writeToFile(file string) error {
+	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, configFileMask)
+	if err != nil {
+		return fmt.Errorf("open: %w", err)
 	}
 
 	defer f.Close()
 
 	err = yaml.NewEncoder(f).Encode(c)
 	if err != nil {
-		return fmt.Errorf("write: %w", err)
+		return fmt.Errorf("encode: %w", err)
 	}
 
 	return nil
 }
 
-func WithConfig(ctx context.Context, configFile string) context.Context {
+func WithConfig(ctx context.Context, file string) context.Context {
 	ctx, cancel := context.WithCancelCause(ctx)
 
 	c, err := ParseFromFile()
