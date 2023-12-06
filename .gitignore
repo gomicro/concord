@@ -3,3 +3,6 @@
 
 # Directories
 .DS_Store
+
+# Files
+config.yml
