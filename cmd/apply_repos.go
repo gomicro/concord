@@ -23,7 +23,7 @@ func init() {
 
 func NewApplyReposCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "repos",
+		Use:   "repos [repo_names]",
 		Short: "Apply a repos configuration",
 		Long:  `Apply repos in a configuration against github`,
 		RunE:  applyReposRun,
@@ -91,18 +91,31 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
+	repoMap := map[string]struct{}{}
+	if len(args) > 0 {
+		for _, r := range args {
+			repoMap[r] = struct{}{}
+		}
+	} else {
+		for _, r := range org.Repositories {
+			repoMap[r.Name] = struct{}{}
+		}
+	}
+
 	report.Println()
 	report.PrintHeader("Repos")
 	report.Println()
 
 	for _, r := range org.Repositories {
-		report.Println()
-		report.PrintHeader(r.Name)
-		report.Println()
+		if _, found := repoMap[r.Name]; found {
+			report.Println()
+			report.PrintHeader(r.Name)
+			report.Println()
 
-		err := ensureRepo(ctx, org.Name, r)
-		if err != nil {
-			return handleError(cmd, err)
+			err := ensureRepo(ctx, org.Name, r)
+			if err != nil {
+				return handleError(cmd, err)
+			}
 		}
 	}
 
