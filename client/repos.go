@@ -209,8 +209,10 @@ func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string
 }
 
 func (c *Client) RemoveRepoFromTeam(ctx context.Context, org, team, repo string) {
-	report.PrintAdd("removing repo from team '" + team + "'")
-	report.Println()
+	cs := &report.ChangeSet{}
+	cs.Add("removing repo from team '"+team+"'", "removed repo from team '"+team+"'")
+
+	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -226,8 +228,7 @@ func (c *Client) RemoveRepoFromTeam(ctx context.Context, org, team, repo string)
 			return fmt.Errorf("remove repo from team: %w", err)
 		}
 
-		report.PrintAdd("removed repo from team '" + team + "'")
-		report.Println()
+		cs.PrintPost()
 
 		return nil
 	})
@@ -306,28 +307,26 @@ func (c *Client) IsBranchProtected(ctx context.Context, org, repo, branch string
 }
 
 func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Repository) {
-	report.PrintAdd("creating repo " + repo.GetName())
-	report.Println()
+	cs := &report.ChangeSet{}
+	cs.Add("creating repo "+repo.GetName(), "created repo "+repo.GetName())
 
 	if repo.Description != nil {
-		report.PrintAdd("setting description to '" + repo.GetDescription() + "'")
-		report.Println()
+		cs.Add("setting description to '"+repo.GetDescription()+"'", "set description to '"+repo.GetDescription()+"'")
 	}
 
 	if repo.Archived != nil {
-		report.PrintAdd("setting archived to '" + fmt.Sprintf("%t", repo.GetArchived()) + "'")
-		report.Println()
+		cs.Add("setting archived to '"+fmt.Sprintf("%t", repo.GetArchived())+"'", "set archived to '"+fmt.Sprintf("%t", repo.GetArchived())+"'")
 	}
 
 	if repo.Private != nil {
-		report.PrintAdd("setting private to '" + fmt.Sprintf("%t", repo.GetPrivate()) + "'")
-		report.Println()
+		cs.Add("setting private to '"+fmt.Sprintf("%t", repo.GetPrivate())+"'", "set private to '"+fmt.Sprintf("%t", repo.GetPrivate())+"'")
 	}
 
 	if repo.DefaultBranch != nil {
-		report.PrintAdd("setting default branch to '" + repo.GetDefaultBranch() + "'")
-		report.Println()
+		cs.Add("setting default branch to '"+repo.GetDefaultBranch()+"'", "set default branch to '"+repo.GetDefaultBranch()+"'")
 	}
+
+	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -340,63 +339,40 @@ func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Reposi
 			return fmt.Errorf("create repo: %w", err)
 		}
 
-		report.PrintSuccess("created repo " + repo.GetName())
-		report.Println()
-
-		if repo.Description != nil {
-			report.PrintSuccess("set description to '" + repo.GetDescription() + "'")
-			report.Println()
-		}
-
-		if repo.Archived != nil {
-			report.PrintSuccess("set archived to '" + fmt.Sprintf("%t", repo.GetArchived()) + "'")
-			report.Println()
-		}
-
-		if repo.Private != nil {
-			report.PrintSuccess("set private to '" + fmt.Sprintf("%t", repo.GetPrivate()) + "'")
-			report.Println()
-		}
-
-		if repo.DefaultBranch != nil {
-			report.PrintSuccess("set default branch to '" + repo.GetDefaultBranch() + "'")
-			report.Println()
-		}
+		cs.PrintPost()
 
 		return nil
 	})
 }
 
 func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github.Repository) {
+	cs := &report.ChangeSet{}
+
 	if edits.Description != nil {
-		report.PrintAdd("updating description to '" + *edits.Description + "'")
-		report.Println()
+		cs.Add("updating description to '"+*edits.Description+"'", "updated description to '"+*edits.Description+"'")
 	}
 
 	if edits.Archived != nil {
-		report.PrintAdd("updating archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'")
-		report.Println()
+		cs.Add("updating archived to '"+fmt.Sprintf("%t", *edits.Archived)+"'", "updated archived to '"+fmt.Sprintf("%t", *edits.Archived)+"'")
 	}
 
 	if edits.Private != nil {
-		report.PrintAdd("updating private to '" + fmt.Sprintf("%t", *edits.Private) + "'")
-		report.Println()
+		cs.Add("updating private to '"+fmt.Sprintf("%t", *edits.Private)+"'", "updated private to '"+fmt.Sprintf("%t", *edits.Private)+"'")
 	}
 
 	if edits.DefaultBranch != nil {
-		report.PrintAdd("updating default branch to '" + *edits.DefaultBranch + "'")
-		report.Println()
+		cs.Add("updating default branch to '"+*edits.DefaultBranch+"'", "updated default branch to '"+*edits.DefaultBranch+"'")
 	}
 
 	if edits.DeleteBranchOnMerge != nil {
-		report.PrintAdd("updating auto delete head branches to '" + fmt.Sprintf("%t", *edits.DeleteBranchOnMerge) + "'")
-		report.Println()
+		cs.Add("updating auto delete head branches to '"+fmt.Sprintf("%t", *edits.DeleteBranchOnMerge)+"'", "updated auto delete head branches to '"+fmt.Sprintf("%t", *edits.DeleteBranchOnMerge)+"'")
 	}
 
 	if edits.AllowAutoMerge != nil {
-		report.PrintAdd("updating allow auto merge to '" + fmt.Sprintf("%t", *edits.AllowAutoMerge) + "'")
-		report.Println()
+		cs.Add("updating allow auto merge to '"+fmt.Sprintf("%t", *edits.AllowAutoMerge)+"'", "updated allow auto merge to '"+fmt.Sprintf("%t", *edits.AllowAutoMerge)+"'")
 	}
+
+	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -413,43 +389,17 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 			return fmt.Errorf("update repo description: %w", err)
 		}
 
-		if edits.Description != nil {
-			report.PrintSuccess("updated description to '" + *edits.Description + "'")
-			report.Println()
-		}
-
-		if edits.Archived != nil {
-			report.PrintSuccess("updated archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'")
-			report.Println()
-		}
-
-		if edits.Private != nil {
-			report.PrintSuccess("updated private to '" + fmt.Sprintf("%t", *edits.Private) + "'")
-			report.Println()
-		}
-
-		if edits.DefaultBranch != nil {
-			report.PrintSuccess("updated default branch to '" + *edits.DefaultBranch + "'")
-			report.Println()
-		}
-
-		if edits.DeleteBranchOnMerge != nil {
-			report.PrintSuccess("updated auto delete head branches to '" + fmt.Sprintf("%t", *edits.DeleteBranchOnMerge) + "'")
-			report.Println()
-		}
-
-		if edits.AllowAutoMerge != nil {
-			report.PrintSuccess("updated allow auto merge to '" + fmt.Sprintf("%t", *edits.AllowAutoMerge) + "'")
-			report.Println()
-		}
+		cs.PrintPost()
 
 		return nil
 	})
 }
 
 func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []string) {
-	report.PrintAdd("updating labels to [" + strings.Join(topics, ", ") + "]")
-	report.Println()
+	cs := &report.ChangeSet{}
+	cs.Add("updating labels to ["+strings.Join(topics, ", ")+"]", "updated labels to ["+strings.Join(topics, ", ")+"]")
+
+	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -466,8 +416,7 @@ func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []s
 			return fmt.Errorf("set repo topics: %w", err)
 		}
 
-		report.PrintSuccess("updated labels to [" + strings.Join(topics, ", ") + "]")
-		report.Println()
+		cs.PrintPost()
 
 		return nil
 	})
@@ -479,23 +428,28 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 		return err
 	}
 
+	cs := &report.ChangeSet{}
+
 	if ghpb != nil {
 		report.PrintInfo(branch + " branch protected")
 		report.Println()
 	} else {
-		report.PrintAdd("protecting branch " + branch)
-		report.Println()
+		cs.Add("protecting branch "+branch, "protected branch "+branch)
 	}
 
 	if protection.RequiredPullRequestReviews != nil {
-		report.PrintAdd("setting require pr to 'true'")
-		report.Println()
+		if ghpb.GetRequiredPullRequestReviews() == nil {
+			cs.Add("setting require pr to 'true'", "set require pr to 'true'")
+		}
+	} else {
+		if ghpb.GetRequiredPullRequestReviews() != nil {
+			cs.Add("setting require pr to 'false'", "set require pr to 'false'")
+		}
 	}
 
 	checks := []string{}
 	if protection.RequiredStatusChecks != nil {
-		report.PrintAdd("setting require status checks to 'true'")
-		report.Println()
+		cs.Add("setting require status checks to 'true'", "set require status checks to 'true'")
 
 		rc := protection.GetRequiredStatusChecks()
 		if len(rc.Checks) > 0 {
@@ -505,10 +459,11 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 		}
 
 		if len(checks) > 0 {
-			report.PrintAdd("setting required checks to [" + strings.Join(checks, ", ") + "]")
-			report.Println()
+			cs.Add("setting required checks to ["+strings.Join(checks, ", ")+"]", "set required checks to ["+strings.Join(checks, ", ")+"]")
 		}
 	}
+
+	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -525,29 +480,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 			return fmt.Errorf("protect branch: %w", err)
 		}
 
-		report.PrintSuccess("protected branch " + branch)
-		report.Println()
-
-		if protection.RequiredPullRequestReviews != nil {
-			report.PrintSuccess("set require pr to 'true'")
-			report.Println()
-		} else {
-			report.PrintSuccess("set require pr to 'false'")
-			report.Println()
-		}
-
-		if protection.RequiredStatusChecks != nil {
-			report.PrintSuccess("set require status checks to 'true'")
-			report.Println()
-
-			if len(checks) > 0 {
-				report.PrintSuccess("set required checks to [" + strings.Join(checks, ", ") + "]")
-				report.Println()
-			}
-		} else {
-			report.PrintSuccess("set require status checks to 'false'")
-			report.Println()
-		}
+		cs.PrintPost()
 
 		return nil
 	})
@@ -556,8 +489,10 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 }
 
 func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch string) {
-	report.PrintAdd("updating require signed commits to 'true'")
-	report.Println()
+	cs := &report.ChangeSet{}
+	cs.Add("setting require signed commits to 'true'", "set require signed commits to 'true'")
+
+	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -574,8 +509,7 @@ func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch str
 			return fmt.Errorf("protect branch: signature required: %w", err)
 		}
 
-		report.PrintSuccess("updated require signed commits to 'true'")
-		report.Println()
+		cs.PrintPost()
 
 		return nil
 	})
