@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -23,7 +22,7 @@ func init() {
 
 func NewApplyReposCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "repos",
+		Use:   "repos [repo_names]",
 		Short: "Apply a repos configuration",
 		Long:  `Apply repos in a configuration against github`,
 		RunE:  applyReposRun,
@@ -91,18 +90,31 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
+	repoMap := map[string]struct{}{}
+	if len(args) > 0 {
+		for _, r := range args {
+			repoMap[r] = struct{}{}
+		}
+	} else {
+		for _, r := range org.Repositories {
+			repoMap[r.Name] = struct{}{}
+		}
+	}
+
 	report.Println()
 	report.PrintHeader("Repos")
 	report.Println()
 
 	for _, r := range org.Repositories {
-		report.Println()
-		report.PrintHeader(r.Name)
-		report.Println()
+		if _, found := repoMap[r.Name]; found {
+			report.Println()
+			report.PrintHeader(r.Name)
+			report.Println()
 
-		err := ensureRepo(ctx, org.Name, r)
-		if err != nil {
-			return handleError(cmd, err)
+			err := ensureRepo(ctx, org.Name, r)
+			if err != nil {
+				return handleError(cmd, err)
+			}
 		}
 	}
 
@@ -280,19 +292,15 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 		return err
 	}
 
-	ghpb, err := clt.GetBranchProtection(ctx, org, repo.Name, branch.Name)
-	if err != nil && !errors.Is(err, client.ErrBranchProtectionNotFound) {
+	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	if err != nil {
 		return err
 	}
 
-	clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
-
 	if branch.GetProtection() != nil {
-		if ghpb.GetRequiredSignatures().GetEnabled() != branch.GetProtection().GetSignedCommits() {
-			clt.RequireSignedCommits(ctx, org, repo.Name, branch.Name)
-		} else {
-			report.PrintInfo("require signed commits is '" + fmt.Sprintf("%t", branch.GetProtection().GetSignedCommits()) + "'")
-			report.Println()
+		err = clt.SetRequireSignedCommits(ctx, org, repo.Name, branch.Name, branch.GetProtection().GetSignedCommits())
+		if err != nil {
+			return err
 		}
 	}
 
@@ -302,11 +310,11 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 func buildBranchProtectionState(branch *gh_pb.Branch) *github.ProtectionRequest {
 	state := &github.ProtectionRequest{}
 
-	if branch.Protection.RequirePr != nil {
+	if branch.Protection.RequirePr != nil && *branch.Protection.RequirePr {
 		state.RequiredPullRequestReviews = &github.PullRequestReviewsEnforcementRequest{}
 	}
 
-	if branch.Protection.ChecksMustPass != nil {
+	if branch.Protection.ChecksMustPass != nil && *branch.Protection.ChecksMustPass {
 		state.RequiredStatusChecks = &github.RequiredStatusChecks{
 			Checks: []*github.RequiredStatusCheck{},
 		}
