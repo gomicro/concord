@@ -449,17 +449,26 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 
 	checks := []string{}
 	if protection.RequiredStatusChecks != nil {
-		cs.Add("setting require status checks to 'true'", "set require status checks to 'true'")
+		if ghpb.RequiredStatusChecks == nil {
+			cs.Add("setting require status checks to 'true'", "set require status checks to 'true'")
 
-		rc := protection.GetRequiredStatusChecks()
-		if len(rc.Checks) > 0 {
-			for i := range rc.Checks {
-				checks = append(checks, rc.Checks[i].Context)
+			rc := protection.GetRequiredStatusChecks()
+			if len(rc.Checks) > 0 {
+				for i := range rc.Checks {
+					checks = append(checks, rc.Checks[i].Context)
+				}
 			}
-		}
 
-		if len(checks) > 0 {
-			cs.Add("setting required checks to ["+strings.Join(checks, ", ")+"]", "set required checks to ["+strings.Join(checks, ", ")+"]")
+			if len(checks) > 0 {
+				cs.Add("setting required checks to ["+strings.Join(checks, ", ")+"]", "set required checks to ["+strings.Join(checks, ", ")+"]")
+			}
+		} else {
+			report.PrintInfo("status checks required")
+			report.Println()
+		}
+	} else {
+		if ghpb.RequiredStatusChecks != nil {
+			cs.Add("setting require status checks to 'false'", "set require status checks to 'false'")
 		}
 	}
 

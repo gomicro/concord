@@ -318,11 +318,11 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 func buildBranchProtectionState(branch *gh_pb.Branch) *github.ProtectionRequest {
 	state := &github.ProtectionRequest{}
 
-	if branch.Protection.RequirePr != nil {
+	if branch.Protection.RequirePr != nil && *branch.Protection.RequirePr {
 		state.RequiredPullRequestReviews = &github.PullRequestReviewsEnforcementRequest{}
 	}
 
-	if branch.Protection.ChecksMustPass != nil {
+	if branch.Protection.ChecksMustPass != nil && *branch.Protection.ChecksMustPass {
 		state.RequiredStatusChecks = &github.RequiredStatusChecks{
 			Checks: []*github.RequiredStatusCheck{},
 		}
