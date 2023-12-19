@@ -497,15 +497,33 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 	return nil
 }
 
-func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch string) {
+func (c *Client) SetRequireSignedCommits(ctx context.Context, org, repo, branch string, require bool) error {
+	ghpb, err := c.GetBranchProtection(ctx, org, repo, branch)
+	if err != nil && !errors.Is(err, ErrBranchProtectionNotFound) {
+		return err
+	}
+
 	cs := &report.ChangeSet{}
-	cs.Add("setting require signed commits to 'true'", "set require signed commits to 'true'")
+
+	if ghpb.GetRequiredSignatures().GetEnabled() != require {
+		cs.Add(fmt.Sprintf("setting require signed commits to '%t'", require), fmt.Sprintf("set require signed commits to '%t'", require))
+	} else {
+		report.PrintInfo(fmt.Sprintf("require signed commits is '%t'", require))
+		report.Println()
+	}
 
 	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
-		_, resp, err := c.ghClient.Repositories.RequireSignaturesOnProtectedBranch(ctx, org, repo, branch)
+		var resp *github.Response
+		var err error
+		if require {
+			_, resp, err = c.ghClient.Repositories.RequireSignaturesOnProtectedBranch(ctx, org, repo, branch)
+		} else {
+			resp, err = c.ghClient.Repositories.OptionalSignaturesOnProtectedBranch(ctx, org, repo, branch)
+		}
+
 		if err != nil {
 			if _, ok := err.(*github.RateLimitError); ok {
 				return fmt.Errorf("github: hit rate limit")
@@ -515,11 +533,13 @@ func (c *Client) RequireSignedCommits(ctx context.Context, org, repo, branch str
 				return ErrBranchProtectionNotFound
 			}
 
-			return fmt.Errorf("protect branch: signature required: %w", err)
+			return fmt.Errorf("protect branch: set signature required: %w", err)
 		}
 
 		cs.PrintPost()
 
 		return nil
 	})
+
+	return nil
 }

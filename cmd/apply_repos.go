@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -293,22 +292,15 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 		return err
 	}
 
-	ghpb, err := clt.GetBranchProtection(ctx, org, repo.Name, branch.Name)
-	if err != nil && !errors.Is(err, client.ErrBranchProtectionNotFound) {
-		return err
-	}
-
 	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
 	if err != nil {
 		return err
 	}
 
 	if branch.GetProtection() != nil {
-		if ghpb.GetRequiredSignatures().GetEnabled() != branch.GetProtection().GetSignedCommits() {
-			clt.RequireSignedCommits(ctx, org, repo.Name, branch.Name)
-		} else {
-			report.PrintInfo("require signed commits is '" + fmt.Sprintf("%t", branch.GetProtection().GetSignedCommits()) + "'")
-			report.Println()
+		err = clt.SetRequireSignedCommits(ctx, org, repo.Name, branch.Name, branch.GetProtection().GetSignedCommits())
+		if err != nil {
+			return err
 		}
 	}
 
