@@ -90,23 +90,35 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	repoMap := map[string]struct{}{}
-	if len(args) > 0 {
-		for _, r := range args {
-			repoMap[r] = struct{}{}
-		}
-	} else {
-		for _, r := range org.Repositories {
-			repoMap[r.Name] = struct{}{}
-		}
+	clt, err := client.ClientFromContext(ctx)
+	if err != nil {
+		return handleError(cmd, err)
 	}
 
 	report.Println()
 	report.PrintHeader("Repos")
 	report.Println()
 
+	repos, err := clt.GetRepos(ctx, org.Name)
+	if err != nil {
+		return handleError(cmd, err)
+	}
+
+	unmanaged := getUnmanagedRepos(org.Repositories, repos)
+
+	targetMap := map[string]struct{}{}
+	if len(args) > 0 {
+		for _, r := range args {
+			targetMap[r] = struct{}{}
+		}
+	} else {
+		for _, r := range org.Repositories {
+			targetMap[r.Name] = struct{}{}
+		}
+	}
+
 	for _, r := range org.Repositories {
-		if _, found := repoMap[r.Name]; found {
+		if _, found := targetMap[r.Name]; found {
 			report.Println()
 			report.PrintHeader(r.Name)
 			report.Println()
@@ -118,7 +130,34 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if len(args) == 0 {
+		for _, mr := range unmanaged {
+			report.Println()
+			report.PrintHeader(mr)
+			report.Println()
+
+			report.PrintWarn("repo exists in github but not in manifest")
+			report.Println()
+		}
+	}
+
 	return nil
+}
+
+func getUnmanagedRepos(manifest []*gh_pb.Repository, repos []*github.Repository) []string {
+	managed := []string{}
+	for _, r := range manifest {
+		managed = append(managed, r.Name)
+	}
+
+	unmanaged := []string{}
+	for _, r := range repos {
+		if !slices.Contains(managed, r.GetName()) {
+			unmanaged = append(unmanaged, r.GetName())
+		}
+	}
+
+	return unmanaged
 }
 
 func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
