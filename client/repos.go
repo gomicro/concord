@@ -449,7 +449,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 
 	checks := []string{}
 	if protection.RequiredStatusChecks != nil {
-		if ghpb.RequiredStatusChecks == nil {
+		if ghpb.GetRequiredStatusChecks() == nil {
 			cs.Add("setting require status checks to 'true'", "set require status checks to 'true'")
 
 			rc := protection.GetRequiredStatusChecks()
@@ -467,7 +467,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 			report.Println()
 		}
 	} else {
-		if ghpb.RequiredStatusChecks != nil {
+		if ghpb.GetRequiredStatusChecks() != nil {
 			cs.Add("setting require status checks to 'false'", "set require status checks to 'false'")
 		}
 	}
