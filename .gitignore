@@ -2,7 +2,8 @@
 /concord
 
 # Directories
+/dist
 .DS_Store
 
 # Files
-config.yml
+coverage.txt
