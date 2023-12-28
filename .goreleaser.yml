@@ -1,0 +1,24 @@
+
+builds:
+- env:
+    - CGO_ENABLED=0
+  ldflags:
+    - -X "github.com/gomicro/concord/cmd.Version={{ .Version }}"
+    - -X "github.com/gomicro/concord/cmd.clientID={{ .Env.CONCORD_CLIENT_ID }}"
+    - -X "github.com/gomicro/concord/cmd.clientSecret={{ .Env.CONCORD_CLIENT_SECRET }}"
+    - "-s -w"
+    - "-s -w"
+  goos:
+    - darwin
+    - windows
+    - linux
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+dockers:
+  - goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/gomicro/concord:latest"
+      - "ghcr.io/gomicro/concord:{{ .Version }}"
