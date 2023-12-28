@@ -34,7 +34,7 @@ steps:
       GOOS: '{{.Os}}'
     cmd: >
       go install -ldflags
-      "-X 'github.com/gomicro/concord/cmd.Version=dev-$(git rev-parse --short HEAD)'
+      "-X 'github.com/gomicro/concord/cmd.Version=dev-{{.ShortSha}}'
       -X 'github.com/gomicro/concord/cmd.clientID=$CONCORD_CLIENT_ID'
       -X 'github.com/gomicro/concord/cmd.clientSecret=$CONCORD_CLIENT_SECRET'"
   test:
