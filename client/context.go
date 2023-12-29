@@ -8,15 +8,13 @@ const (
 	clientConextKey ctxKey = "client"
 )
 
-func WithClient(ctx context.Context, tkn string) context.Context {
-	ctx, cancel := context.WithCancelCause(ctx)
-
+func WithClient(ctx context.Context, tkn string) (context.Context, error) {
 	c, err := New(ctx, tkn)
 	if err != nil {
-		cancel(err)
+		return nil, err
 	}
 
-	return context.WithValue(ctx, clientConextKey, c)
+	return context.WithValue(ctx, clientConextKey, c), nil
 }
 
 func ClientFromContext(ctx context.Context) (*Client, error) {

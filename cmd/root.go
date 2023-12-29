@@ -42,9 +42,14 @@ func Execute() {
 		c.Github.Token = tkn
 	}
 
-	ctx := client.WithClient(context.Background(), c.Github.Token)
+	ctx, err := client.WithClient(context.Background(), c.Github.Token)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+		os.Exit(1)
+	}
 
-	if err := rootCmd.ExecuteContext(ctx); err != nil {
+	err = rootCmd.ExecuteContext(ctx)
+	if err != nil {
 		fmt.Printf("Error: %s\n", err.Error())
 		os.Exit(1)
 	}
