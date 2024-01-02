@@ -140,13 +140,15 @@ func fillDefaults(o *gh_pb.Organization) {
 				r.Permissions = o.Defaults.Permissions
 			}
 
-			for _, gf := range o.Defaults.Files {
-				for _, r := range o.Repositories {
-					if !hasDefaultFile(r.Files, gf) {
-						r.Files = append(r.Files, gf)
+			/*
+				for _, gf := range o.Defaults.Files {
+					for _, r := range o.Repositories {
+						if !hasDefaultFile(r.Files, gf) {
+							r.Files = append(r.Files, gf)
+						}
 					}
 				}
-			}
+			*/
 		}
 	}
 }
@@ -161,6 +163,7 @@ func hasDefaultLabel(labels []string, label string) bool {
 	return false
 }
 
+/*
 func hasDefaultFile(files []*gh_pb.File, file *gh_pb.File) bool {
 	for _, f := range files {
 		if strings.EqualFold(f.Destination, file.Destination) {
@@ -170,6 +173,7 @@ func hasDefaultFile(files []*gh_pb.File, file *gh_pb.File) bool {
 
 	return false
 }
+*/
 
 func hasDefaultProtectedBranch(branches []*gh_pb.Branch, branch *gh_pb.Branch) bool {
 	for _, b := range branches {
