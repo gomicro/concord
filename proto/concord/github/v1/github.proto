@@ -7,8 +7,9 @@ import "buf/validate/validate.proto";
 option go_package = "github.com/gomicro/concord/github/v1;gh_pb";
 
 message Organization {
-  string   name     = 1 [(buf.validate.field).string.min_len = 1];
-  Defaults defaults = 2;
+  string         name        = 1 [(buf.validate.field).string.min_len = 1];
+  Defaults       defaults    = 2;
+  OrgPermissions permissions = 3;
 
   repeated string     teams        = 10;
   repeated People     people       = 11;
@@ -16,19 +17,25 @@ message Organization {
   repeated string     labels       = 13;
 }
 
+message OrgPermissions {
+   optional string base_permissions     = 1[(buf.validate.field).string = { in: ["none", "read", "write", "admin"] }];
+   optional bool   create_private_repos = 2;
+   optional bool   create_public_repos  = 3;
+}
+
 // Defaults are overriden by the same settings specified in the repository
 message Defaults {
-  optional bool            private                   = 1;
-  optional string          default_branch            = 2 [(buf.validate.field).string.min_len = 1];
-  optional bool            allow_auto_merge          = 3;
-  optional bool            auto_delete_head_branches = 4;
-  repeated Branch          protected_branches        = 5;
-  repeated File            files                     = 6;
-  map<string, Permissions> permissions               = 7[(buf.validate.field).map.keys.string = { in: ["read", "triage", "write", "maintain", "admin"] }];
+  optional bool                private                   = 1;
+  optional string              default_branch            = 2 [(buf.validate.field).string.min_len = 1];
+  optional bool                allow_auto_merge          = 3;
+  optional bool                auto_delete_head_branches = 4;
+  repeated Branch              protected_branches        = 5;
+  map<string, TeamPermissions> permissions               = 6[(buf.validate.field).map.keys.string = { in: ["read", "triage", "write", "maintain", "admin"] }];
+  //repeated File            files                     = 7;
   //repeated Secret          secrets                   = 8;
 }
 
-message Permissions {
+message TeamPermissions {
   repeated string teams = 1;
 }
 
@@ -54,12 +61,17 @@ message Secret {
 }
 */
 
+/*
+TODO: This is a placeholder for now. We need to figure out the pieces for
+      actually uploading and editing the files.
+
 message File {
   string source      = 1 [(buf.validate.field).string.min_len = 1];
   string destination = 2 [(buf.validate.field).string.min_len = 1];
 
   repeated string target_labels = 3;
 }
+*/
 
 message Repository {
   string name = 1 [(buf.validate.field).string.min_len = 1];
@@ -69,13 +81,13 @@ message Repository {
   repeated string labels      = 4;
 
   // Overrides defaults
-  optional bool            private                   = 10;
-  optional string          default_branch            = 11 [(buf.validate.field).string.min_len = 1];
-  optional bool            allow_auto_merge          = 12;
-  optional bool            auto_delete_head_branches = 13;
-  repeated Branch          protected_branches        = 14;
-  repeated File            files                     = 15;
-  map<string, Permissions> permissions               = 16[(buf.validate.field).map.keys.string = { in: ["read", "triage", "write", "maintain", "admin"] }];
+  optional bool                private                   = 10;
+  optional string              default_branch            = 11 [(buf.validate.field).string.min_len = 1];
+  optional bool                allow_auto_merge          = 12;
+  optional bool                auto_delete_head_branches = 13;
+  repeated Branch              protected_branches        = 14;
+  map<string, TeamPermissions> permissions               = 15[(buf.validate.field).map.keys.string = { in: ["read", "triage", "write", "maintain", "admin"] }];
+  //repeated File            files                     = 16;
   //repeated Secret          secrets                   = 17;
 }
 
