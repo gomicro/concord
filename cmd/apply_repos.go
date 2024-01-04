@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -301,7 +302,7 @@ func setTeamPermissions(ctx context.Context, org string, repo *gh_pb.Repository,
 
 	gts, err := clt.GetRepoTeams(ctx, org, repo.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("remove unamaged teams: %w", err)
 	}
 
 	for _, gt := range gts {
