@@ -137,11 +137,11 @@ func (c *Client) GetRepoTeams(ctx context.Context, org, repo string) ([]*github.
 			return nil, fmt.Errorf("github: hit rate limit")
 		}
 
-		return nil, fmt.Errorf("get repo teams: %w", err)
-	}
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrRepoNotFound
+		}
 
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, ErrRepoNotFound
+		return nil, fmt.Errorf("get repo teams: %w", err)
 	}
 
 	return teams, nil
@@ -150,7 +150,7 @@ func (c *Client) GetRepoTeams(ctx context.Context, org, repo string) ([]*github.
 func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string) error {
 	gts, err := c.GetRepoTeams(ctx, org, repo)
 	if err != nil {
-		return err
+		return fmt.Errorf("add repo team: %w", err)
 	}
 
 	gtps := map[string]string{}
