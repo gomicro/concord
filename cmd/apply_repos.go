@@ -206,9 +206,12 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 		}
 	}
 
-	err = setTeamPermissions(ctx, org, repo, ghr)
-	if err != nil {
-		return err
+	// if repo is fresh, we can't do anything with teams yet
+	if !fresh {
+		err = setTeamPermissions(ctx, org, repo, ghr)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = ensureFiles(ctx, org, repo, ghr)
