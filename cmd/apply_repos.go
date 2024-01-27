@@ -225,12 +225,19 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 func buildRepoEdits(repo *gh_pb.Repository, ghr *github.Repository, fresh bool) *github.Repository {
 	edits := &github.Repository{}
 
-	if !fresh && repo.Description != nil && !strings.EqualFold(ghr.GetDescription(), *repo.Description) {
-		edits.Description = repo.Description
+	if !fresh && repo.Archived != nil {
+		if ghr.GetArchived() != *repo.Archived {
+			edits.Archived = repo.Archived
+		}
+		// Nothing else can be done with archived repos
+		if *repo.Archived {
+			fmt.Printf("repo %s is archived, skipping\n", repo.Name)
+			return edits
+		}
 	}
 
-	if !fresh && repo.Archived != nil && ghr.GetArchived() != *repo.Archived {
-		edits.Archived = repo.Archived
+	if !fresh && repo.Description != nil && !strings.EqualFold(ghr.GetDescription(), *repo.Description) {
+		edits.Description = repo.Description
 	}
 
 	if !fresh && repo.Private != nil && ghr.GetPrivate() != *repo.Private {

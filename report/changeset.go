@@ -25,6 +25,10 @@ func (c *ChangeSet) PrintPost() {
 	}
 }
 
+func (c *ChangeSet) HasChanges() bool {
+	return len(c.changes) > 0
+}
+
 type change struct {
 	pre  string
 	post string
