@@ -373,6 +373,9 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 	}
 
 	cs.PrintPre()
+	if !cs.HasChanges() {
+		return
+	}
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -386,7 +389,7 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 				return ErrRepoNotFound
 			}
 
-			return fmt.Errorf("update repo description: %w", err)
+			return fmt.Errorf("update repo: %w", err)
 		}
 
 		cs.PrintPost()

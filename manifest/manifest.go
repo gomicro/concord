@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/bufbuild/protovalidate-go"
@@ -26,12 +26,15 @@ var (
 )
 
 func ReadManifest(file string) (*gh_pb.Organization, error) {
-	p, err := os.Getwd()
-	if err != nil {
-		return nil, err
+	if !filepath.IsAbs(file) {
+		p, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		file = filepath.Join(p, file)
 	}
 
-	b, err := os.ReadFile(path.Join(p, file))
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
