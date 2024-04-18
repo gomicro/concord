@@ -192,7 +192,7 @@ func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string
 				return ErrRepoNotFound
 			}
 
-			return fmt.Errorf("add repo to team: %w", err)
+			return fmt.Errorf("%s/%s: add repo to team: %w", org, repo, err)
 		}
 
 		if relationExists {
@@ -225,7 +225,7 @@ func (c *Client) RemoveRepoFromTeam(ctx context.Context, org, team, repo string)
 				return ErrRepoNotFound
 			}
 
-			return fmt.Errorf("remove repo from team: %w", err)
+			return fmt.Errorf("%s/%s: remove repo from team: %w", org, repo, err)
 		}
 
 		cs.PrintPost()
@@ -336,7 +336,7 @@ func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Reposi
 				return fmt.Errorf("github: hit rate limit")
 			}
 
-			return fmt.Errorf("create repo: %w", err)
+			return fmt.Errorf("%s/%s: create repo: %w", org, repo, err)
 		}
 
 		cs.PrintPost()
@@ -389,7 +389,7 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 				return ErrRepoNotFound
 			}
 
-			return fmt.Errorf("update repo: %w", err)
+			return fmt.Errorf("%s/%s: update repo: %w", org, repo, err)
 		}
 
 		cs.PrintPost()
@@ -416,7 +416,7 @@ func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []s
 				return ErrRepoNotFound
 			}
 
-			return fmt.Errorf("set repo topics: %w", err)
+			return fmt.Errorf("%s/%s: set repo topics: %w", org, repo, err)
 		}
 
 		cs.PrintPost()
@@ -489,7 +489,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 				return ErrBranchProtectionNotFound
 			}
 
-			return fmt.Errorf("protect branch: %w", err)
+			return fmt.Errorf("%s/%s: protect branch: %w", org, repo, err)
 		}
 
 		cs.PrintPost()
@@ -536,7 +536,7 @@ func (c *Client) SetRequireSignedCommits(ctx context.Context, org, repo, branch 
 				return ErrBranchProtectionNotFound
 			}
 
-			return fmt.Errorf("protect branch: set signature required: %w", err)
+			return fmt.Errorf("%s/%s: protect branch: set signature required: %w", org, repo, err)
 		}
 
 		cs.PrintPost()
