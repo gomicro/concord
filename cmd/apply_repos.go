@@ -124,6 +124,12 @@ func reposRun(cmd *cobra.Command, args []string) error {
 			report.PrintHeader(r.Name)
 			report.Println()
 
+			if r.Archived != nil && *r.Archived {
+				report.PrintInfo("repo is archived, skipping")
+				report.Println()
+				continue
+			}
+
 			err := ensureRepo(ctx, org.Name, r)
 			if err != nil {
 				report.PrintError(err.Error())
