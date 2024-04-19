@@ -389,6 +389,10 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 				return ErrRepoNotFound
 			}
 
+			if resp.StatusCode == http.StatusForbidden && strings.Contains(err.Error(), "was archived so is read-only") {
+				return fmt.Errorf("%s/%s: update repo: repo is archived", org, repo)
+			}
+
 			return fmt.Errorf("%s/%s: update repo: %w", org, repo, err)
 		}
 
@@ -489,6 +493,10 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 				return ErrBranchProtectionNotFound
 			}
 
+			if resp.StatusCode == http.StatusForbidden && strings.Contains(err.Error(), "was archived so is read-only") {
+				return fmt.Errorf("%s/%s: protect branch: repo is archived", org, repo)
+			}
+
 			return fmt.Errorf("%s/%s: protect branch: %w", org, repo, err)
 		}
 
@@ -534,6 +542,10 @@ func (c *Client) SetRequireSignedCommits(ctx context.Context, org, repo, branch 
 
 			if resp.StatusCode == http.StatusNotFound {
 				return ErrBranchProtectionNotFound
+			}
+
+			if resp.StatusCode == http.StatusForbidden && strings.Contains(err.Error(), "was archived so is read-only") {
+				return fmt.Errorf("%s/%s: protect branch: set signature required: repo is archived", org, repo)
 			}
 
 			return fmt.Errorf("%s/%s: protect branch: set signature required: %w", org, repo, err)

@@ -126,7 +126,7 @@ func reposRun(cmd *cobra.Command, args []string) error {
 
 			err := ensureRepo(ctx, org.Name, r)
 			if err != nil {
-				return handleError(cmd, err)
+				report.PrintError(err.Error())
 			}
 		}
 	}

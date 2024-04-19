@@ -84,7 +84,8 @@ func (c *Client) Apply() error {
 	for _, fn := range c.stack {
 		err := fn()
 		if err != nil {
-			return err
+			report.PrintError(err.Error())
+			report.Println()
 		}
 	}
 
