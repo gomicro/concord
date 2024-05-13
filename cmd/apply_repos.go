@@ -181,6 +181,7 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 	fresh := false
 	if errors.Is(err, client.ErrRepoNotFound) {
 		clt.CreateRepo(ctx, org, buildRepoState(repo))
+		clt.InitRepo(ctx, org, repo.Name, *repo.DefaultBranch)
 		fresh = true
 	}
 
