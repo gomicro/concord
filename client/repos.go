@@ -345,6 +345,39 @@ func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Reposi
 	})
 }
 
+func (c *Client) InitRepo(ctx context.Context, org, repo, branch string) {
+	cs := &report.ChangeSet{}
+
+	filename := "README.md"
+	content := []byte("# " + repo)
+
+	opts := &github.RepositoryContentFileOptions{
+		Message: github.String("initializing repo"),
+		Content: content,
+		Branch:  &branch,
+	}
+
+	cs.Add("creating file "+filename, "created file "+filename)
+
+	cs.PrintPre()
+
+	c.Add(func() error {
+		c.rate.Wait(ctx) //nolint: errcheck
+		_, _, err := c.ghClient.Repositories.CreateFile(ctx, org, repo, filename, opts)
+		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				return fmt.Errorf("github: hit rate limit")
+			}
+
+			return fmt.Errorf("%s/%s: init repo: %w", org, repo, err)
+		}
+
+		cs.PrintPost()
+
+		return nil
+	})
+}
+
 func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github.Repository) {
 	cs := &report.ChangeSet{}
 
