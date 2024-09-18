@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -43,7 +44,7 @@ func Execute() {
 	}
 
 	ctx, err := client.WithClient(context.Background(), c.Github.Token)
-	if err != nil {
+	if err != nil && !errors.Is(err, client.ErrTokenEmpty) {
 		fmt.Printf("Error: %s\n", err.Error())
 		os.Exit(1)
 	}
