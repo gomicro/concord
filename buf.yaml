@@ -1,4 +1,7 @@
-version: v1
+version: v2
+
+modules:
+  - path: proto/concord
 
 deps:
   - buf.build/bufbuild/protovalidate
