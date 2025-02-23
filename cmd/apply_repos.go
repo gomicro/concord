@@ -11,7 +11,6 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
-	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
@@ -61,8 +60,8 @@ func applyReposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
-	report.PrintHeader("Org")
-	report.Println()
+	scrb.BeginDescribe("Organization")
+	defer scrb.EndDescribe()
 
 	err = reposRun(cmd, args)
 	if err != nil {
@@ -96,9 +95,8 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	report.Println()
-	report.PrintHeader("Repos")
-	report.Println()
+	scrb.BeginDescribe("Repositories")
+	defer scrb.EndDescribe()
 
 	repos, err := clt.GetRepos(ctx, org.Name)
 	if err != nil {
@@ -120,31 +118,26 @@ func reposRun(cmd *cobra.Command, args []string) error {
 
 	for _, r := range org.Repositories {
 		if _, found := targetMap[r.Name]; found {
-			report.Println()
-			report.PrintHeader(r.Name)
-			report.Println()
+			scrb.BeginDescribe(r.Name)
+			scrb.EndDescribe()
 
 			if r.Archived != nil && *r.Archived {
-				report.PrintInfo("repo is archived, skipping")
-				report.Println()
+				scrb.Done("repo is archived, skipping")
 				continue
 			}
 
 			err := ensureRepo(ctx, org.Name, r)
 			if err != nil {
-				report.PrintError(err.Error())
+				scrb.Done(err.Error()) // TODO: error color
 			}
 		}
 	}
 
 	if len(args) == 0 {
 		for _, mr := range unmanaged {
-			report.Println()
-			report.PrintHeader(mr)
-			report.Println()
-
-			report.PrintWarn("repo exists in github but not in manifest")
-			report.Println()
+			scrb.BeginDescribe(mr)
+			scrb.EndDescribe()
+			scrb.Done("repo exists in github but not in manifest") // TODO: warn
 		}
 	}
 
@@ -201,8 +194,7 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 		if !slices.Equal(ghl, l) {
 			clt.SetRepoTopics(ctx, org, repo.Name, l)
 		} else {
-			report.PrintInfo("labels are [" + strings.Join(l, ", ") + "]")
-			report.Println()
+			scrb.Done("labels are [" + strings.Join(l, ", ") + "]")
 		}
 	}
 
@@ -238,7 +230,7 @@ func buildRepoEdits(repo *gh_pb.Repository, ghr *github.Repository, fresh bool) 
 		}
 		// Nothing else can be done with archived repos
 		if *repo.Archived {
-			fmt.Printf("repo %s is archived, skipping\n", repo.Name)
+			scrb.Done("repo " + repo.Name + " is archived, skipping")
 			return edits
 		}
 	}

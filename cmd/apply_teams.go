@@ -9,7 +9,6 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
-	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 )
@@ -58,8 +57,8 @@ func applyTeamsRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
-	report.PrintHeader("Org")
-	report.Println()
+	scrb.BeginDescribe("Organization")
+	defer scrb.EndDescribe()
 
 	err = teamsRun(cmd, args)
 	if err != nil {
@@ -93,9 +92,8 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	report.Println()
-	report.PrintHeader("Teams")
-	report.Println()
+	scrb.BeginDescribe("Teams")
+	defer scrb.EndDescribe()
 
 	tms, err := clt.GetTeams(ctx, org.Name)
 	if err != nil {
@@ -105,8 +103,8 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 	missing, managed, unmanaged := getTeamsBreakdown(org.Teams, tms)
 
 	for _, mt := range missing {
-		report.PrintHeader(mt)
-		report.Println()
+		scrb.BeginDescribe(mt)
+		scrb.EndDescribe()
 
 		clt.CreateTeam(ctx, org.Name, mt)
 
@@ -115,16 +113,13 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		for _, m := range missing {
 			clt.InviteTeamMember(ctx, org.GetName(), mt, m)
 		}
-
-		report.Println()
 	}
 
 	for _, mt := range managed {
-		report.PrintHeader(mt)
-		report.Println()
+		scrb.BeginDescribe(mt)
+		scrb.EndDescribe()
 
-		report.PrintInfo("team exists in github")
-		report.Println()
+		scrb.Done("team exists in github")
 
 		ms, err := clt.GetTeamMembers(ctx, org.Name, mt)
 		if err != nil {
@@ -137,26 +132,18 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		}
 
 		for _, m := range managed {
-			report.PrintInfo(m + " exists in team")
-			report.Println()
+			scrb.Done(m + " exists in team")
 		}
 
 		for _, m := range unmanaged {
-			report.PrintWarn(m + " exists in team but not in manifest")
-			report.Println()
+			scrb.Done(m + " exists in team but not in manifest")
 		}
-
-		report.Println()
 	}
 
 	for _, mt := range unmanaged {
-		report.PrintHeader(mt)
-		report.Println()
-
-		report.PrintWarn("team exists in github but not in manifest")
-		report.Println()
-
-		report.Println()
+		scrb.BeginDescribe(mt)
+		scrb.EndDescribe()
+		scrb.Done("team exists in github but not in manifest") // TODO: warn
 	}
 
 	return nil

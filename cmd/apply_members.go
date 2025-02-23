@@ -9,7 +9,6 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
-	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 )
@@ -58,8 +57,8 @@ func applyMembersRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
-	report.PrintHeader("Org")
-	report.Println()
+	scrb.BeginDescribe("Organization")
+	defer scrb.EndDescribe()
 
 	err = membersRun(cmd, args)
 	if err != nil {
@@ -93,9 +92,8 @@ func membersRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	report.Println()
-	report.PrintHeader("Members")
-	report.Println()
+	scrb.BeginDescribe("Members")
+	scrb.EndDescribe()
 
 	ms, err := clt.GetMembers(ctx, org.Name)
 	if err != nil {
@@ -106,16 +104,15 @@ func membersRun(cmd *cobra.Command, args []string) error {
 
 	for _, m := range missing {
 		clt.InviteMember(ctx, org.Name, m)
+		scrb.Done("Invited " + m)
 	}
 
 	for _, m := range managed {
-		report.PrintInfo(m + " exists in github")
-		report.Println()
+		scrb.Done(m + " exists in github")
 	}
 
 	for _, m := range unmanaged {
-		report.PrintWarn(m + " exists in github but not in manifest")
-		report.Println()
+		scrb.Done(m + " exists in github but not in manifest")
 	}
 
 	return nil

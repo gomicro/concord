@@ -11,8 +11,11 @@ import (
 	"github.com/gomicro/concord/client"
 	"github.com/gomicro/concord/config"
 	"github.com/gomicro/concord/report"
+	"github.com/gomicro/scribe"
 	"github.com/spf13/cobra"
 )
+
+var scrb scribe.Scriber
 
 func init() {
 	cobra.OnInitialize(initEnvs)
@@ -20,6 +23,16 @@ func init() {
 	rootCmd.PersistentFlags().StringP("file", "f", "concord.yml", "Path to a file containing a manifest")
 	rootCmd.PersistentFlags().Bool("dry", false, "Print out the actions that would be taken without actually taking them")
 	rootCmd.PersistentFlags().Bool("force", false, "Force the action to be taken without prompting for confirmation")
+
+	t := &scribe.Theme{
+		Describe: func(s string) string {
+			// Cyan
+			return fmt.Sprintf("\033[36m%s\033[0m", s)
+		},
+		Done: scribe.NoopDecorator,
+	}
+
+	scrb = scribe.NewScribe(os.Stdout, t)
 }
 
 func initEnvs() {
