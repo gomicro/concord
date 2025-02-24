@@ -29,9 +29,9 @@ func (s *Scribe) EndDescribe() {
 	s.level--
 }
 
-func (s *Scribe) Done(done string) {
+func (s *Scribe) Print(str string) {
 	s.level++
-	s.printt(s.theme.Done(done))
+	s.printt(s.theme.Print(str))
 	s.level--
 }
 

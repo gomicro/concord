@@ -19,9 +19,10 @@ github.com/bufbuild/protovalidate-go/resolver
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-# github.com/gomicro/scribe v0.0.0-20250223093115-683c0d552f02
+# github.com/gomicro/scribe v0.0.0-20250223233355-e4d63fcf11e3
 ## explicit; go 1.23.3
 github.com/gomicro/scribe
+github.com/gomicro/scribe/color
 # github.com/gomicro/trust v0.0.1
 ## explicit; go 1.13
 github.com/gomicro/trust
