@@ -11,7 +11,7 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
-	"github.com/gomicro/concord/report"
+	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
@@ -52,19 +52,21 @@ func applyReposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	exists, err := clt.OrgExists(ctx, org.Name)
+	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
-		return handleError(cmd, err)
-	}
+		if !errors.Is(err, client.ErrOrgNotFound) {
+			return handleError(cmd, err)
+		}
 
-	if !exists {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
-	report.PrintHeader("Org")
-	report.Println()
+	free := ghOrg.GetPlan().GetName() == "free"
 
-	err = reposRun(cmd, args)
+	scrb.BeginDescribe("Organization")
+	defer scrb.EndDescribe()
+
+	err = reposRun(cmd, args, free)
 	if err != nil {
 		return handleError(cmd, err)
 	}
@@ -83,7 +85,7 @@ func applyReposRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func reposRun(cmd *cobra.Command, args []string) error {
+func reposRun(cmd *cobra.Command, args []string, free bool) error {
 	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
@@ -96,9 +98,8 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	report.Println()
-	report.PrintHeader("Repos")
-	report.Println()
+	scrb.BeginDescribe("Repositories")
+	defer scrb.EndDescribe()
 
 	repos, err := clt.GetRepos(ctx, org.Name)
 	if err != nil {
@@ -120,31 +121,26 @@ func reposRun(cmd *cobra.Command, args []string) error {
 
 	for _, r := range org.Repositories {
 		if _, found := targetMap[r.Name]; found {
-			report.Println()
-			report.PrintHeader(r.Name)
-			report.Println()
+			scrb.BeginDescribe(r.Name)
+			scrb.EndDescribe()
 
 			if r.Archived != nil && *r.Archived {
-				report.PrintInfo("repo is archived, skipping")
-				report.Println()
+				scrb.Print("repo is archived, skipping")
 				continue
 			}
 
-			err := ensureRepo(ctx, org.Name, r)
+			err := ensureRepo(ctx, org.Name, free, r)
 			if err != nil {
-				report.PrintError(err.Error())
+				scrb.Print(color.RedFg(err.Error()))
 			}
 		}
 	}
 
 	if len(args) == 0 {
 		for _, mr := range unmanaged {
-			report.Println()
-			report.PrintHeader(mr)
-			report.Println()
-
-			report.PrintWarn("repo exists in github but not in manifest")
-			report.Println()
+			scrb.BeginDescribe(mr)
+			scrb.EndDescribe()
+			scrb.Print(color.YellowFg("repo exists in github but not in manifest"))
 		}
 	}
 
@@ -167,7 +163,7 @@ func getUnmanagedRepos(manifest []*gh_pb.Repository, repos []*github.Repository)
 	return unmanaged
 }
 
-func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
+func ensureRepo(ctx context.Context, org string, free bool, repo *gh_pb.Repository) error {
 	clt, err := client.ClientFromContext(ctx)
 	if err != nil {
 		return err
@@ -180,12 +176,12 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 
 	fresh := false
 	if errors.Is(err, client.ErrRepoNotFound) {
-		clt.CreateRepo(ctx, org, buildRepoState(repo))
-		clt.InitRepo(ctx, org, repo.Name, *repo.DefaultBranch)
+		clt.CreateRepo(ctx, scrb, org, buildRepoState(repo))
+		clt.InitRepo(ctx, scrb, org, repo.Name, *repo.DefaultBranch)
 		fresh = true
 	}
 
-	clt.UpdateRepo(ctx, org, repo.Name, buildRepoEdits(repo, ghr, fresh))
+	clt.UpdateRepo(ctx, scrb, org, repo.Name, buildRepoEdits(repo, ghr, fresh))
 
 	if len(repo.Labels) > 0 {
 		var ghl []string
@@ -199,17 +195,20 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 		slices.Sort(l)
 
 		if !slices.Equal(ghl, l) {
-			clt.SetRepoTopics(ctx, org, repo.Name, l)
+			clt.SetRepoTopics(ctx, scrb, org, repo.Name, l)
 		} else {
-			report.PrintInfo("labels are [" + strings.Join(l, ", ") + "]")
-			report.Println()
+			scrb.Print("labels are [" + strings.Join(l, ", ") + "]")
 		}
 	}
 
-	for _, pb := range repo.ProtectedBranches {
-		err := setBranchProtection(ctx, org, repo, pb)
-		if err != nil {
-			return err
+	if free && repo.GetPrivate() {
+		scrb.Print("skipping branch protection for private repo on free plan")
+	} else {
+		for _, pb := range repo.ProtectedBranches {
+			err := setBranchProtection(ctx, org, repo, pb)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -238,7 +237,7 @@ func buildRepoEdits(repo *gh_pb.Repository, ghr *github.Repository, fresh bool) 
 		}
 		// Nothing else can be done with archived repos
 		if *repo.Archived {
-			fmt.Printf("repo %s is archived, skipping\n", repo.Name)
+			scrb.Print("repo " + repo.Name + " is archived, skipping")
 			return edits
 		}
 	}
@@ -302,7 +301,7 @@ func setTeamPermissions(ctx context.Context, org string, repo *gh_pb.Repository,
 
 	for p, teams := range repo.Permissions {
 		for _, t := range teams.Teams {
-			err = clt.AddRepoToTeam(ctx, org, strings.ToLower(t), repo.Name, p)
+			err = clt.AddRepoToTeam(ctx, scrb, org, strings.ToLower(t), repo.Name, p)
 			if err != nil {
 				return err
 			}
@@ -327,7 +326,7 @@ func setTeamPermissions(ctx context.Context, org string, repo *gh_pb.Repository,
 			continue
 		}
 
-		clt.RemoveRepoFromTeam(ctx, org, gt.GetSlug(), repo.Name)
+		clt.RemoveRepoFromTeam(ctx, scrb, org, gt.GetSlug(), repo.Name)
 	}
 
 	return nil
@@ -349,13 +348,13 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 		return err
 	}
 
-	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	err = clt.ProtectBranch(ctx, scrb, org, repo.Name, branch.Name, state)
 	if err != nil {
 		return err
 	}
 
 	if branch.GetProtection() != nil {
-		err = clt.SetRequireSignedCommits(ctx, org, repo.Name, branch.Name, branch.GetProtection().GetSignedCommits())
+		err = clt.SetRequireSignedCommits(ctx, scrb, org, repo.Name, branch.Name, branch.GetProtection().GetSignedCommits())
 		if err != nil {
 			return err
 		}

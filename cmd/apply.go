@@ -8,7 +8,6 @@ import (
 
 	"github.com/gomicro/concord/client"
 	"github.com/gomicro/concord/manifest"
-	"github.com/gomicro/concord/report"
 	"github.com/spf13/cobra"
 )
 
@@ -49,17 +48,19 @@ func applyRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	exists, err := clt.OrgExists(ctx, org.Name)
+	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
-		return handleError(cmd, err)
-	}
+		if !errors.Is(err, client.ErrOrgNotFound) {
+			return handleError(cmd, err)
+		}
 
-	if !exists {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
-	report.PrintHeader("Org")
-	report.Println()
+	free := ghOrg.GetPlan().GetName() == "free"
+
+	scrb.BeginDescribe("Organization")
+	defer scrb.EndDescribe()
 
 	err = orgRun(cmd, args)
 	if err != nil {
@@ -76,7 +77,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	err = reposRun(cmd, args)
+	err = reposRun(cmd, args, free)
 	if err != nil {
 		return handleError(cmd, err)
 	}

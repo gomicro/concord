@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
-	"github.com/gomicro/concord/report"
+	"github.com/gomicro/scribe"
+	"github.com/gomicro/scribe/color"
 	"github.com/gomicro/trust"
 	"github.com/google/go-github/v56/github"
 	"golang.org/x/oauth2"
@@ -77,15 +79,22 @@ func (c *Client) Apply() error {
 		return nil
 	}
 
-	report.Println()
-	report.PrintHeader("Applying")
-	report.Println()
+	t := &scribe.Theme{
+		Describe: func(s string) string {
+			return color.CyanFg(s)
+		},
+		Print: scribe.NoopDecorator,
+	}
+
+	scrb := scribe.NewScribe(os.Stdout, t)
+
+	scrb.BeginDescribe("Applying")
+	scrb.EndDescribe()
 
 	for _, fn := range c.stack {
 		err := fn()
 		if err != nil {
-			report.PrintError(err.Error())
-			report.Println()
+			scrb.Print(color.RedFg(err.Error()))
 		}
 	}
 

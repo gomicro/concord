@@ -9,7 +9,6 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
-	"github.com/gomicro/concord/report"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 )
@@ -58,8 +57,8 @@ func applyOrgRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
 
-	report.PrintHeader("Org")
-	report.Println()
+	scrb.BeginDescribe("Organization")
+	defer scrb.EndDescribe()
 
 	err = orgRun(cmd, args)
 	if err != nil {
@@ -93,11 +92,12 @@ func orgRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	report.Println()
-	report.PrintHeader("Permissions")
-	report.Println()
+	scrb.BeginDescribe("Permissions")
+	scrb.EndDescribe()
 
-	err = clt.SetOrgPrivileges(ctx, org.Name, buildOrgState(org))
+	// TODO: this should be broken into two parts, determine if the org exists
+	// and then apply the permissions
+	err = clt.SetOrgPrivileges(ctx, scrb, org.Name, buildOrgState(org))
 	if err != nil {
 		return handleError(cmd, err)
 	}
