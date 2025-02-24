@@ -103,7 +103,7 @@ func membersRun(cmd *cobra.Command, args []string) error {
 	missing, managed, unmanaged := getMemberBreakdown(org.People, ms)
 
 	for _, m := range missing {
-		clt.InviteMember(ctx, org.Name, m)
+		clt.InviteMember(ctx, scrb, org.Name, m)
 		scrb.Print("Invited " + m)
 	}
 

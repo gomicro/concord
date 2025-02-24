@@ -52,19 +52,21 @@ func applyReposRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	exists, err := clt.OrgExists(ctx, org.Name)
+	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
-		return handleError(cmd, err)
-	}
+		if !errors.Is(err, client.ErrOrgNotFound) {
+			return handleError(cmd, err)
+		}
 
-	if !exists {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
+
+	free := ghOrg.GetPlan().GetName() == "free"
 
 	scrb.BeginDescribe("Organization")
 	defer scrb.EndDescribe()
 
-	err = reposRun(cmd, args)
+	err = reposRun(cmd, args, free)
 	if err != nil {
 		return handleError(cmd, err)
 	}
@@ -83,7 +85,7 @@ func applyReposRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func reposRun(cmd *cobra.Command, args []string) error {
+func reposRun(cmd *cobra.Command, args []string, free bool) error {
 	ctx := cmd.Context()
 
 	org, err := manifest.OrgFromContext(ctx)
@@ -127,7 +129,7 @@ func reposRun(cmd *cobra.Command, args []string) error {
 				continue
 			}
 
-			err := ensureRepo(ctx, org.Name, r)
+			err := ensureRepo(ctx, org.Name, free, r)
 			if err != nil {
 				scrb.Print(color.RedFg(err.Error()))
 			}
@@ -161,7 +163,7 @@ func getUnmanagedRepos(manifest []*gh_pb.Repository, repos []*github.Repository)
 	return unmanaged
 }
 
-func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
+func ensureRepo(ctx context.Context, org string, free bool, repo *gh_pb.Repository) error {
 	clt, err := client.ClientFromContext(ctx)
 	if err != nil {
 		return err
@@ -174,12 +176,12 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 
 	fresh := false
 	if errors.Is(err, client.ErrRepoNotFound) {
-		clt.CreateRepo(ctx, org, buildRepoState(repo))
-		clt.InitRepo(ctx, org, repo.Name, *repo.DefaultBranch)
+		clt.CreateRepo(ctx, scrb, org, buildRepoState(repo))
+		clt.InitRepo(ctx, scrb, org, repo.Name, *repo.DefaultBranch)
 		fresh = true
 	}
 
-	clt.UpdateRepo(ctx, org, repo.Name, buildRepoEdits(repo, ghr, fresh))
+	clt.UpdateRepo(ctx, scrb, org, repo.Name, buildRepoEdits(repo, ghr, fresh))
 
 	if len(repo.Labels) > 0 {
 		var ghl []string
@@ -193,16 +195,20 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 		slices.Sort(l)
 
 		if !slices.Equal(ghl, l) {
-			clt.SetRepoTopics(ctx, org, repo.Name, l)
+			clt.SetRepoTopics(ctx, scrb, org, repo.Name, l)
 		} else {
 			scrb.Print("labels are [" + strings.Join(l, ", ") + "]")
 		}
 	}
 
-	for _, pb := range repo.ProtectedBranches {
-		err := setBranchProtection(ctx, org, repo, pb)
-		if err != nil {
-			return err
+	if free && repo.GetPrivate() {
+		scrb.Print("skipping branch protection for private repo on free plan")
+	} else {
+		for _, pb := range repo.ProtectedBranches {
+			err := setBranchProtection(ctx, org, repo, pb)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -320,7 +326,7 @@ func setTeamPermissions(ctx context.Context, org string, repo *gh_pb.Repository,
 			continue
 		}
 
-		clt.RemoveRepoFromTeam(ctx, org, gt.GetSlug(), repo.Name)
+		clt.RemoveRepoFromTeam(ctx, scrb, org, gt.GetSlug(), repo.Name)
 	}
 
 	return nil

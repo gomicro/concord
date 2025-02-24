@@ -10,7 +10,6 @@ import (
 
 	"github.com/gomicro/concord/client"
 	"github.com/gomicro/concord/config"
-	"github.com/gomicro/concord/report"
 	"github.com/gomicro/scribe"
 	"github.com/gomicro/scribe/color"
 	"github.com/spf13/cobra"
@@ -79,8 +78,7 @@ func confirm(cmd *cobra.Command, msg string) bool {
 		return true
 	}
 
-	report.Println()
-	report.PrintInfo(msg)
+	scrb.Print(msg)
 
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -92,7 +90,7 @@ func confirm(cmd *cobra.Command, msg string) bool {
 		} else if strings.Compare(s, "y") == 0 {
 			break
 		} else {
-			report.PrintInfo(msg)
+			scrb.Print(msg)
 		}
 	}
 

@@ -107,12 +107,12 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		scrb.BeginDescribe(mt)
 		scrb.EndDescribe()
 
-		clt.CreateTeam(ctx, org.Name, mt)
+		clt.CreateTeam(ctx, scrb, org.Name, mt)
 
 		missing, _, _ := getTeamMembersBreakdown(mt, org.People, nil)
 
 		for _, m := range missing {
-			clt.InviteTeamMember(ctx, org.GetName(), mt, m)
+			clt.InviteTeamMember(ctx, scrb, org.GetName(), mt, m)
 		}
 	}
 
@@ -129,7 +129,7 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 
 		missing, managed, unmanaged := getTeamMembersBreakdown(mt, org.People, ms)
 		for _, m := range missing {
-			clt.InviteTeamMember(ctx, org.GetName(), mt, m)
+			clt.InviteTeamMember(ctx, scrb, org.GetName(), mt, m)
 		}
 
 		for _, m := range managed {

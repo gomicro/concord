@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gomicro/concord/report"
 	"github.com/gomicro/scribe"
 	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v56/github"
@@ -196,10 +195,9 @@ func (c *Client) AddRepoToTeam(ctx context.Context, scrb scribe.Scriber, org, te
 		}
 
 		if relationExists {
-			report.PrintSuccess("updated repo to team '" + team + "' with '" + perm + "'")
+			scrb.Print(color.GreenFg("updated repo to team '" + team + "' with '" + perm + "'"))
 		} else {
-			report.PrintAdd("added repo to team '" + team + "' with '" + perm + "'")
-			report.Println()
+			scrb.Print(color.GreenFg("added repo to team '" + team + "' with '" + perm + "'"))
 		}
 
 		return nil
@@ -208,11 +206,8 @@ func (c *Client) AddRepoToTeam(ctx context.Context, scrb scribe.Scriber, org, te
 	return nil
 }
 
-func (c *Client) RemoveRepoFromTeam(ctx context.Context, org, team, repo string) {
-	cs := &report.ChangeSet{}
-	cs.Add("removing repo from team '"+team+"'", "removed repo from team '"+team+"'")
-
-	cs.PrintPre()
+func (c *Client) RemoveRepoFromTeam(ctx context.Context, scrb scribe.Scriber, org, team, repo string) {
+	scrb.Print(color.GreenFg("removing repo from team '" + team + "'"))
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -228,7 +223,7 @@ func (c *Client) RemoveRepoFromTeam(ctx context.Context, org, team, repo string)
 			return fmt.Errorf("%s/%s: remove repo from team: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		scrb.Print(color.GreenFg("removed repo from team '" + team + "'"))
 
 		return nil
 	})
@@ -306,27 +301,24 @@ func (c *Client) IsBranchProtected(ctx context.Context, org, repo, branch string
 	return b != nil, nil
 }
 
-func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Repository) {
-	cs := &report.ChangeSet{}
-	cs.Add("creating repo "+repo.GetName(), "created repo "+repo.GetName())
+func (c *Client) CreateRepo(ctx context.Context, scrb scribe.Scriber, org string, repo *github.Repository) {
+	scrb.Print(color.GreenFg("creating repo " + repo.GetName()))
 
 	if repo.Description != nil {
-		cs.Add("setting description to '"+repo.GetDescription()+"'", "set description to '"+repo.GetDescription()+"'")
+		scrb.Print(color.GreenFg("set description to '" + repo.GetDescription() + "'"))
 	}
 
 	if repo.Archived != nil {
-		cs.Add("setting archived to '"+fmt.Sprintf("%t", repo.GetArchived())+"'", "set archived to '"+fmt.Sprintf("%t", repo.GetArchived())+"'")
+		scrb.Print(color.GreenFg("set archived to '" + fmt.Sprintf("%t", repo.GetArchived()) + "'"))
 	}
 
 	if repo.Private != nil {
-		cs.Add("setting private to '"+fmt.Sprintf("%t", repo.GetPrivate())+"'", "set private to '"+fmt.Sprintf("%t", repo.GetPrivate())+"'")
+		scrb.Print(color.GreenFg("set private to '" + fmt.Sprintf("%t", repo.GetPrivate()) + "'"))
 	}
 
 	if repo.DefaultBranch != nil {
-		cs.Add("setting default branch to '"+repo.GetDefaultBranch()+"'", "set default branch to '"+repo.GetDefaultBranch()+"'")
+		scrb.Print(color.GreenFg("set default branch to '" + repo.GetDefaultBranch() + "'"))
 	}
-
-	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -339,15 +331,29 @@ func (c *Client) CreateRepo(ctx context.Context, org string, repo *github.Reposi
 			return fmt.Errorf("%s/%s: create repo: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		scrb.Print(color.GreenFg("created repo " + repo.GetName()))
+
+		if repo.Description != nil {
+			scrb.Print(color.GreenFg("set description to '" + repo.GetDescription() + "'"))
+		}
+
+		if repo.Archived != nil {
+			scrb.Print(color.GreenFg("set archived to '" + fmt.Sprintf("%t", repo.GetArchived()) + "'"))
+		}
+
+		if repo.Private != nil {
+			scrb.Print(color.GreenFg("set private to '" + fmt.Sprintf("%t", repo.GetPrivate()) + "'"))
+		}
+
+		if repo.DefaultBranch != nil {
+			scrb.Print(color.GreenFg("set default branch to '" + repo.GetDefaultBranch() + "'"))
+		}
 
 		return nil
 	})
 }
 
-func (c *Client) InitRepo(ctx context.Context, org, repo, branch string) {
-	cs := &report.ChangeSet{}
-
+func (c *Client) InitRepo(ctx context.Context, scrb scribe.Scriber, org, repo, branch string) {
 	filename := "README.md"
 	content := []byte("# " + repo)
 
@@ -357,9 +363,7 @@ func (c *Client) InitRepo(ctx context.Context, org, repo, branch string) {
 		Branch:  &branch,
 	}
 
-	cs.Add("creating file "+filename, "created file "+filename)
-
-	cs.PrintPre()
+	scrb.Print(color.GreenFg("creating file " + filename))
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -372,41 +376,45 @@ func (c *Client) InitRepo(ctx context.Context, org, repo, branch string) {
 			return fmt.Errorf("%s/%s: init repo: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		scrb.Print(color.GreenFg("created file " + filename))
 
 		return nil
 	})
 }
 
-func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github.Repository) {
-	cs := &report.ChangeSet{}
-
+func (c *Client) UpdateRepo(ctx context.Context, scrb scribe.Scriber, org, repo string, edits *github.Repository) {
+	changes := false
 	if edits.Description != nil {
-		cs.Add("updating description to '"+*edits.Description+"'", "updated description to '"+*edits.Description+"'")
+		scrb.Print(color.GreenFg("updating description to '" + *edits.Description + "'"))
+		changes = true
 	}
 
 	if edits.Archived != nil {
-		cs.Add("updating archived to '"+fmt.Sprintf("%t", *edits.Archived)+"'", "updated archived to '"+fmt.Sprintf("%t", *edits.Archived)+"'")
+		scrb.Print(color.GreenFg("updating archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'"))
+		changes = true
 	}
 
 	if edits.Private != nil {
-		cs.Add("updating private to '"+fmt.Sprintf("%t", *edits.Private)+"'", "updated private to '"+fmt.Sprintf("%t", *edits.Private)+"'")
+		scrb.Print(color.GreenFg("updating private to '" + fmt.Sprintf("%t", *edits.Private) + "'"))
+		changes = true
 	}
 
 	if edits.DefaultBranch != nil {
-		cs.Add("updating default branch to '"+*edits.DefaultBranch+"'", "updated default branch to '"+*edits.DefaultBranch+"'")
+		scrb.Print(color.GreenFg("updating default branch to '" + *edits.DefaultBranch + "'"))
+		changes = true
 	}
 
 	if edits.DeleteBranchOnMerge != nil {
-		cs.Add("updating auto delete head branches to '"+fmt.Sprintf("%t", *edits.DeleteBranchOnMerge)+"'", "updated auto delete head branches to '"+fmt.Sprintf("%t", *edits.DeleteBranchOnMerge)+"'")
+		scrb.Print(color.GreenFg("updating auto delete head branches to '" + fmt.Sprintf("%t", *edits.DeleteBranchOnMerge) + "'"))
+		changes = true
 	}
 
 	if edits.AllowAutoMerge != nil {
-		cs.Add("updating allow auto merge to '"+fmt.Sprintf("%t", *edits.AllowAutoMerge)+"'", "updated allow auto merge to '"+fmt.Sprintf("%t", *edits.AllowAutoMerge)+"'")
+		scrb.Print(color.GreenFg("updating allow auto merge to '" + fmt.Sprintf("%t", *edits.AllowAutoMerge) + "'"))
+		changes = true
 	}
 
-	cs.PrintPre()
-	if !cs.HasChanges() {
+	if !changes {
 		return
 	}
 
@@ -429,17 +437,36 @@ func (c *Client) UpdateRepo(ctx context.Context, org, repo string, edits *github
 			return fmt.Errorf("%s/%s: update repo: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		if edits.Description != nil {
+			scrb.Print(color.GreenFg("updated description to '" + *edits.Description + "'"))
+		}
+
+		if edits.Archived != nil {
+			scrb.Print(color.GreenFg("updated archived to '" + fmt.Sprintf("%t", *edits.Archived) + "'"))
+		}
+
+		if edits.Private != nil {
+			scrb.Print(color.GreenFg("updated private to '" + fmt.Sprintf("%t", *edits.Private) + "'"))
+		}
+
+		if edits.DefaultBranch != nil {
+			scrb.Print(color.GreenFg("updated default branch to '" + *edits.DefaultBranch + "'"))
+		}
+
+		if edits.DeleteBranchOnMerge != nil {
+			scrb.Print(color.GreenFg("updated auto delete head branches to '" + fmt.Sprintf("%t", *edits.DeleteBranchOnMerge) + "'"))
+		}
+
+		if edits.AllowAutoMerge != nil {
+			scrb.Print(color.GreenFg("updated allow auto merge to '" + fmt.Sprintf("%t", *edits.AllowAutoMerge) + "'"))
+		}
 
 		return nil
 	})
 }
 
-func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []string) {
-	cs := &report.ChangeSet{}
-	cs.Add("updating labels to ["+strings.Join(topics, ", ")+"]", "updated labels to ["+strings.Join(topics, ", ")+"]")
-
-	cs.PrintPre()
+func (c *Client) SetRepoTopics(ctx context.Context, scrb scribe.Scriber, org, repo string, topics []string) {
+	scrb.Print(color.GreenFg("updating labels to [" + strings.Join(topics, ", ") + "]"))
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -456,7 +483,7 @@ func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []s
 			return fmt.Errorf("%s/%s: set repo topics: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		scrb.Print(color.GreenFg("updated labels to [" + strings.Join(topics, ", ") + "]"))
 
 		return nil
 	})
@@ -468,28 +495,39 @@ func (c *Client) ProtectBranch(ctx context.Context, scrb scribe.Scriber, org, re
 		return err
 	}
 
-	cs := &report.ChangeSet{}
-
+	protecting := false
 	if ghpb != nil {
 		scrb.Print(branch + " branch protected")
 	} else {
-		cs.Add("protecting branch "+branch, "protected branch "+branch)
+		scrb.Print(color.GreenFg("protecting branch " + branch))
 	}
 
+	setReqPR := false
+	setReqPRTo := false
 	if protection.RequiredPullRequestReviews != nil {
 		if ghpb.GetRequiredPullRequestReviews() == nil {
-			cs.Add("setting require pr to 'true'", "set require pr to 'true'")
+			scrb.Print(color.GreenFg("setting require pr to 'true'"))
+			setReqPR = true
+			setReqPRTo = true
 		}
 	} else {
 		if ghpb.GetRequiredPullRequestReviews() != nil {
-			cs.Add("setting require pr to 'false'", "set require pr to 'false'")
+			scrb.Print(color.GreenFg("setting require pr to 'false'"))
+			setReqPR = true
+			setReqPRTo = false
 		}
 	}
+
+	setReqChecks := false
+	setReqChecksTo := false
+	setChecks := false
 
 	checks := []string{}
 	if protection.RequiredStatusChecks != nil {
 		if ghpb.GetRequiredStatusChecks() == nil {
-			cs.Add("setting require status checks to 'true'", "set require status checks to 'true'")
+			scrb.Print(color.GreenFg("setting require status checks to 'true'"))
+			setReqChecks = true
+			setReqChecksTo = true
 
 			rc := protection.GetRequiredStatusChecks()
 			if len(rc.Checks) > 0 {
@@ -499,18 +537,18 @@ func (c *Client) ProtectBranch(ctx context.Context, scrb scribe.Scriber, org, re
 			}
 
 			if len(checks) > 0 {
-				cs.Add("setting required checks to ["+strings.Join(checks, ", ")+"]", "set required checks to ["+strings.Join(checks, ", ")+"]")
+				scrb.Print(color.GreenFg("setting required checks to [" + strings.Join(checks, ", ") + "]"))
+				setChecks = true
 			}
 		} else {
 			scrb.Print("status checks required")
 		}
 	} else {
 		if ghpb.GetRequiredStatusChecks() != nil {
-			cs.Add("setting require status checks to 'false'", "set require status checks to 'false'")
+			scrb.Print(color.GreenFg("setting require status checks to 'false'"))
+			setReqChecks = true
 		}
 	}
-
-	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -531,7 +569,29 @@ func (c *Client) ProtectBranch(ctx context.Context, scrb scribe.Scriber, org, re
 			return fmt.Errorf("%s/%s: protect branch: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		if protecting {
+			scrb.Print(color.GreenFg("protected branch " + branch))
+		}
+
+		if setReqPR {
+			if setReqPRTo {
+				scrb.Print(color.GreenFg("set require pr to 'true'"))
+			} else {
+				scrb.Print(color.GreenFg("set require pr to 'false'"))
+			}
+		}
+
+		if setReqChecks {
+			if setReqChecksTo {
+				scrb.Print(color.GreenFg("set require status checks to 'true'"))
+			} else {
+				scrb.Print(color.GreenFg("set require status checks to 'false'"))
+			}
+		}
+
+		if setChecks {
+			scrb.Print(color.GreenFg("set required checks to [" + strings.Join(checks, ", ") + "]"))
+		}
 
 		return nil
 	})
@@ -545,15 +605,13 @@ func (c *Client) SetRequireSignedCommits(ctx context.Context, scrb scribe.Scribe
 		return err
 	}
 
-	cs := &report.ChangeSet{}
-
+	req := false
 	if ghpb.GetRequiredSignatures().GetEnabled() != require {
-		cs.Add(fmt.Sprintf("setting require signed commits to '%t'", require), fmt.Sprintf("set require signed commits to '%t'", require))
+		scrb.Print(color.GreenFg(fmt.Sprintf("setting require signed commits to '%t'", require)))
+		req = true
 	} else {
 		scrb.Print(fmt.Sprintf("require signed commits is '%t'", require))
 	}
-
-	cs.PrintPre()
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -581,7 +639,9 @@ func (c *Client) SetRequireSignedCommits(ctx context.Context, scrb scribe.Scribe
 			return fmt.Errorf("%s/%s: protect branch: set signature required: %w", org, repo, err)
 		}
 
-		cs.PrintPost()
+		if req {
+			scrb.Print(color.GreenFg(fmt.Sprintf("set require signed commits to '%t'", require)))
+		}
 
 		return nil
 	})

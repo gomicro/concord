@@ -3,7 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/gomicro/concord/report"
+	"github.com/gomicro/scribe"
+	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v56/github"
 )
 
@@ -20,9 +21,8 @@ func (c *Client) GetTeams(ctx context.Context, orgName string) ([]*github.Team, 
 	return teams, nil
 }
 
-func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) {
-	report.PrintAdd("create team " + teamName)
-	report.Println()
+func (c *Client) CreateTeam(ctx context.Context, scrb scribe.Scriber, orgName, teamName string) {
+	scrb.Print(color.GreenFg("create team " + teamName))
 
 	c.Add(func() error {
 		team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
@@ -55,16 +55,14 @@ func (c *Client) CreateTeam(ctx context.Context, orgName, teamName string) {
 			return err
 		}
 
-		report.PrintSuccess("created team " + teamName)
-		report.Println()
+		scrb.Print(color.GreenFg("created team " + teamName))
 
 		return nil
 	})
 }
 
-func (c *Client) InviteTeamMember(ctx context.Context, org, team, user string) {
-	report.PrintAdd("invite " + user + " to team " + team)
-	report.Println()
+func (c *Client) InviteTeamMember(ctx context.Context, scrb scribe.Scriber, org, team, user string) {
+	scrb.Print(color.GreenFg("invite " + user + " to team " + team))
 
 	c.Add(func() error {
 		_, _, err := c.ghClient.Teams.AddTeamMembershipBySlug(ctx, org, team, user, nil)
@@ -76,8 +74,7 @@ func (c *Client) InviteTeamMember(ctx context.Context, org, team, user string) {
 			return err
 		}
 
-		report.PrintSuccess("invited " + user + " to team " + team)
-		report.Println()
+		scrb.Print(color.GreenFg("invited " + user + " to team " + team))
 
 		return nil
 	})

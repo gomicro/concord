@@ -97,7 +97,7 @@ func orgRun(cmd *cobra.Command, args []string) error {
 
 	// TODO: this should be broken into two parts, determine if the org exists
 	// and then apply the permissions
-	err = clt.SetOrgPrivileges(ctx, org.Name, buildOrgState(org))
+	err = clt.SetOrgPrivileges(ctx, scrb, org.Name, buildOrgState(org))
 	if err != nil {
 		return handleError(cmd, err)
 	}

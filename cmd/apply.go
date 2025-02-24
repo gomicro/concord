@@ -48,14 +48,16 @@ func applyRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	exists, err := clt.OrgExists(ctx, org.Name)
+	ghOrg, err := clt.GetOrg(ctx, org.Name)
 	if err != nil {
-		return handleError(cmd, err)
-	}
+		if !errors.Is(err, client.ErrOrgNotFound) {
+			return handleError(cmd, err)
+		}
 
-	if !exists {
 		return handleError(cmd, errors.New("organization does not exist"))
 	}
+
+	free := ghOrg.GetPlan().GetName() == "free"
 
 	scrb.BeginDescribe("Organization")
 	defer scrb.EndDescribe()
@@ -75,7 +77,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 		return handleError(cmd, err)
 	}
 
-	err = reposRun(cmd, args)
+	err = reposRun(cmd, args, free)
 	if err != nil {
 		return handleError(cmd, err)
 	}
