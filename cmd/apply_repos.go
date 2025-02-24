@@ -122,13 +122,13 @@ func reposRun(cmd *cobra.Command, args []string) error {
 			scrb.EndDescribe()
 
 			if r.Archived != nil && *r.Archived {
-				scrb.Done("repo is archived, skipping")
+				scrb.Print("repo is archived, skipping")
 				continue
 			}
 
 			err := ensureRepo(ctx, org.Name, r)
 			if err != nil {
-				scrb.Done(err.Error()) // TODO: error color
+				scrb.Print(err.Error()) // TODO: error color
 			}
 		}
 	}
@@ -137,7 +137,7 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		for _, mr := range unmanaged {
 			scrb.BeginDescribe(mr)
 			scrb.EndDescribe()
-			scrb.Done("repo exists in github but not in manifest") // TODO: warn
+			scrb.Print("repo exists in github but not in manifest") // TODO: warn
 		}
 	}
 
@@ -194,7 +194,7 @@ func ensureRepo(ctx context.Context, org string, repo *gh_pb.Repository) error {
 		if !slices.Equal(ghl, l) {
 			clt.SetRepoTopics(ctx, org, repo.Name, l)
 		} else {
-			scrb.Done("labels are [" + strings.Join(l, ", ") + "]")
+			scrb.Print("labels are [" + strings.Join(l, ", ") + "]")
 		}
 	}
 
@@ -230,7 +230,7 @@ func buildRepoEdits(repo *gh_pb.Repository, ghr *github.Repository, fresh bool) 
 		}
 		// Nothing else can be done with archived repos
 		if *repo.Archived {
-			scrb.Done("repo " + repo.Name + " is archived, skipping")
+			scrb.Print("repo " + repo.Name + " is archived, skipping")
 			return edits
 		}
 	}
@@ -294,7 +294,7 @@ func setTeamPermissions(ctx context.Context, org string, repo *gh_pb.Repository,
 
 	for p, teams := range repo.Permissions {
 		for _, t := range teams.Teams {
-			err = clt.AddRepoToTeam(ctx, org, strings.ToLower(t), repo.Name, p)
+			err = clt.AddRepoToTeam(ctx, scrb, org, strings.ToLower(t), repo.Name, p)
 			if err != nil {
 				return err
 			}
@@ -341,13 +341,13 @@ func setBranchProtection(ctx context.Context, org string, repo *gh_pb.Repository
 		return err
 	}
 
-	err = clt.ProtectBranch(ctx, org, repo.Name, branch.Name, state)
+	err = clt.ProtectBranch(ctx, scrb, org, repo.Name, branch.Name, state)
 	if err != nil {
 		return err
 	}
 
 	if branch.GetProtection() != nil {
-		err = clt.SetRequireSignedCommits(ctx, org, repo.Name, branch.Name, branch.GetProtection().GetSignedCommits())
+		err = clt.SetRequireSignedCommits(ctx, scrb, org, repo.Name, branch.Name, branch.GetProtection().GetSignedCommits())
 		if err != nil {
 			return err
 		}

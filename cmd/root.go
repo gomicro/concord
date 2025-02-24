@@ -12,6 +12,7 @@ import (
 	"github.com/gomicro/concord/config"
 	"github.com/gomicro/concord/report"
 	"github.com/gomicro/scribe"
+	"github.com/gomicro/scribe/color"
 	"github.com/spf13/cobra"
 )
 
@@ -26,10 +27,9 @@ func init() {
 
 	t := &scribe.Theme{
 		Describe: func(s string) string {
-			// Cyan
-			return fmt.Sprintf("\033[36m%s\033[0m", s)
+			return color.CyanFg(s)
 		},
-		Done: scribe.NoopDecorator,
+		Print: scribe.NoopDecorator,
 	}
 
 	scrb = scribe.NewScribe(os.Stdout, t)

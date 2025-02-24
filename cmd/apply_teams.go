@@ -119,7 +119,7 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		scrb.BeginDescribe(mt)
 		scrb.EndDescribe()
 
-		scrb.Done("team exists in github")
+		scrb.Print("team exists in github")
 
 		ms, err := clt.GetTeamMembers(ctx, org.Name, mt)
 		if err != nil {
@@ -132,18 +132,18 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		}
 
 		for _, m := range managed {
-			scrb.Done(m + " exists in team")
+			scrb.Print(m + " exists in team")
 		}
 
 		for _, m := range unmanaged {
-			scrb.Done(m + " exists in team but not in manifest")
+			scrb.Print(m + " exists in team but not in manifest")
 		}
 	}
 
 	for _, mt := range unmanaged {
 		scrb.BeginDescribe(mt)
 		scrb.EndDescribe()
-		scrb.Done("team exists in github but not in manifest") // TODO: warn
+		scrb.Print("team exists in github but not in manifest") // TODO: warn
 	}
 
 	return nil

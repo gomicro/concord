@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gomicro/concord/report"
+	"github.com/gomicro/scribe"
 	"github.com/google/go-github/v56/github"
 )
 
@@ -147,7 +148,7 @@ func (c *Client) GetRepoTeams(ctx context.Context, org, repo string) ([]*github.
 	return teams, nil
 }
 
-func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string) error {
+func (c *Client) AddRepoToTeam(ctx context.Context, scrb scribe.Scriber, org, team, repo, perm string) error {
 	gts, err := c.GetRepoTeams(ctx, org, repo)
 	if err != nil {
 		return fmt.Errorf("add repo team: %w", err)
@@ -169,13 +170,11 @@ func (c *Client) AddRepoToTeam(ctx context.Context, org, team, repo, perm string
 	}
 
 	if relationExists && strings.EqualFold(tp, p) {
-		report.PrintInfo("team '" + team + "' has permission '" + perm + "'")
-		report.Println()
+		scrb.Print("team '" + team + "' already has permission '" + perm + "'")
 		return nil
 	}
 
-	report.PrintAdd("adding repo to team '" + team + "' with '" + perm + "'")
-	report.Println()
+	scrb.Print("adding repo to team '" + team + "' with '" + perm + "'") //TODO: Green for add
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck
@@ -462,7 +461,7 @@ func (c *Client) SetRepoTopics(ctx context.Context, org, repo string, topics []s
 	})
 }
 
-func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, protection *github.ProtectionRequest) error {
+func (c *Client) ProtectBranch(ctx context.Context, scrb scribe.Scriber, org, repo, branch string, protection *github.ProtectionRequest) error {
 	ghpb, err := c.GetBranchProtection(ctx, org, repo, branch)
 	if err != nil && !errors.Is(err, ErrBranchProtectionNotFound) {
 		return err
@@ -471,8 +470,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 	cs := &report.ChangeSet{}
 
 	if ghpb != nil {
-		report.PrintInfo(branch + " branch protected")
-		report.Println()
+		scrb.Print(branch + " branch protected")
 	} else {
 		cs.Add("protecting branch "+branch, "protected branch "+branch)
 	}
@@ -503,8 +501,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 				cs.Add("setting required checks to ["+strings.Join(checks, ", ")+"]", "set required checks to ["+strings.Join(checks, ", ")+"]")
 			}
 		} else {
-			report.PrintInfo("status checks required")
-			report.Println()
+			scrb.Print("status checks required")
 		}
 	} else {
 		if ghpb.GetRequiredStatusChecks() != nil {
@@ -541,7 +538,7 @@ func (c *Client) ProtectBranch(ctx context.Context, org, repo, branch string, pr
 	return nil
 }
 
-func (c *Client) SetRequireSignedCommits(ctx context.Context, org, repo, branch string, require bool) error {
+func (c *Client) SetRequireSignedCommits(ctx context.Context, scrb scribe.Scriber, org, repo, branch string, require bool) error {
 	ghpb, err := c.GetBranchProtection(ctx, org, repo, branch)
 	if err != nil && !errors.Is(err, ErrBranchProtectionNotFound) {
 		return err
@@ -552,8 +549,7 @@ func (c *Client) SetRequireSignedCommits(ctx context.Context, org, repo, branch 
 	if ghpb.GetRequiredSignatures().GetEnabled() != require {
 		cs.Add(fmt.Sprintf("setting require signed commits to '%t'", require), fmt.Sprintf("set require signed commits to '%t'", require))
 	} else {
-		report.PrintInfo(fmt.Sprintf("require signed commits is '%t'", require))
-		report.Println()
+		scrb.Print(fmt.Sprintf("require signed commits is '%t'", require))
 	}
 
 	cs.PrintPre()

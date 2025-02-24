@@ -104,15 +104,15 @@ func membersRun(cmd *cobra.Command, args []string) error {
 
 	for _, m := range missing {
 		clt.InviteMember(ctx, org.Name, m)
-		scrb.Done("Invited " + m)
+		scrb.Print("Invited " + m)
 	}
 
 	for _, m := range managed {
-		scrb.Done(m + " exists in github")
+		scrb.Print(m + " exists in github")
 	}
 
 	for _, m := range unmanaged {
-		scrb.Done(m + " exists in github but not in manifest")
+		scrb.Print(m + " exists in github but not in manifest")
 	}
 
 	return nil
