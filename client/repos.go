@@ -9,6 +9,7 @@ import (
 
 	"github.com/gomicro/concord/report"
 	"github.com/gomicro/scribe"
+	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v56/github"
 )
 
@@ -174,7 +175,7 @@ func (c *Client) AddRepoToTeam(ctx context.Context, scrb scribe.Scriber, org, te
 		return nil
 	}
 
-	scrb.Print("adding repo to team '" + team + "' with '" + perm + "'") //TODO: Green for add
+	scrb.Print(color.GreenFg("adding repo to team '" + team + "' with '" + perm + "'"))
 
 	c.Add(func() error {
 		c.rate.Wait(ctx) //nolint: errcheck

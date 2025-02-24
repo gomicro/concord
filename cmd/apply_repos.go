@@ -11,6 +11,7 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
+	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
@@ -128,7 +129,7 @@ func reposRun(cmd *cobra.Command, args []string) error {
 
 			err := ensureRepo(ctx, org.Name, r)
 			if err != nil {
-				scrb.Print(err.Error()) // TODO: error color
+				scrb.Print(color.RedFg(err.Error()))
 			}
 		}
 	}
@@ -137,7 +138,7 @@ func reposRun(cmd *cobra.Command, args []string) error {
 		for _, mr := range unmanaged {
 			scrb.BeginDescribe(mr)
 			scrb.EndDescribe()
-			scrb.Print("repo exists in github but not in manifest") // TODO: warn
+			scrb.Print(color.YellowFg("repo exists in github but not in manifest"))
 		}
 	}
 

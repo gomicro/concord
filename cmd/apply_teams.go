@@ -9,6 +9,7 @@ import (
 	"github.com/gomicro/concord/client"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
+	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
 )
@@ -143,7 +144,7 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 	for _, mt := range unmanaged {
 		scrb.BeginDescribe(mt)
 		scrb.EndDescribe()
-		scrb.Print("team exists in github but not in manifest") // TODO: warn
+		scrb.Print(color.YellowFg("team exists in github but not in manifest"))
 	}
 
 	return nil
