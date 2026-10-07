@@ -93,6 +93,25 @@ func (c *Client) RemoveTeamMember(ctx context.Context, orgID, teamID int64, user
 	return nil
 }
 
+func (c *Client) RemoveTeamMemberBySlug(ctx context.Context, scrb scribe.Scriber, org, team, user string) {
+	scrb.Print(color.RedFg("remove " + user + " from team " + team))
+
+	c.Add(func() error {
+		_, err := c.ghClient.Teams.RemoveTeamMembershipBySlug(ctx, org, team, user)
+		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				return err
+			}
+
+			return err
+		}
+
+		scrb.Print(color.GreenFg("removed " + user + " from team " + team))
+
+		return nil
+	})
+}
+
 func (c *Client) GetTeamMembers(ctx context.Context, org, team string) ([]*github.User, error) {
 	members, _, err := c.ghClient.Teams.ListTeamMembersBySlug(ctx, org, team, nil)
 	if err != nil {
