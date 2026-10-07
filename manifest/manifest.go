@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bufbuild/protovalidate-go"
+	"buf.build/go/protovalidate"
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
@@ -39,7 +39,7 @@ func ReadManifest(file string) (*gh_pb.Organization, error) {
 		return nil, err
 	}
 
-	var v map[string]interface{}
+	var v map[string]any
 	err = yaml.Unmarshal(b, &v)
 	if err != nil {
 		return nil, err
@@ -76,11 +76,11 @@ func ReadManifest(file string) (*gh_pb.Organization, error) {
 }
 
 func WithManifest(ctx context.Context, file string) context.Context {
-	ctx, cancel := context.WithCancelCause(ctx)
-
 	m, err := ReadManifest(file)
 	if err != nil {
+		ctx, cancel := context.WithCancelCause(ctx)
 		cancel(err)
+
 		return ctx
 	}
 

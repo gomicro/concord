@@ -10,7 +10,7 @@ import (
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/scribe/color"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
 )
 
@@ -137,7 +137,7 @@ func teamsRun(cmd *cobra.Command, args []string) error {
 		}
 
 		for _, m := range unmanaged {
-			scrb.Print(m + " exists in team but not in manifest")
+			clt.RemoveTeamMemberBySlug(ctx, scrb, org.GetName(), mt, m)
 		}
 	}
 
@@ -187,7 +187,7 @@ func managedTeam(manifestTeams []string, name string) bool {
 
 func getTeamMembersBreakdown(team string, people []*gh_pb.People, members []*github.User) (missing []string, managed []string, unmanaged []string) {
 	for _, m := range members {
-		if managedTeamMember(people, m.GetLogin()) {
+		if managedTeamMember(team, people, m.GetLogin()) {
 			managed = append(managed, m.GetLogin())
 		} else {
 			unmanaged = append(unmanaged, m.GetLogin())
@@ -214,10 +214,16 @@ func getTeamMembersBreakdown(team string, people []*gh_pb.People, members []*git
 	return
 }
 
-func managedTeamMember(manifestPeople []*gh_pb.People, name string) bool {
+func managedTeamMember(team string, manifestPeople []*gh_pb.People, name string) bool {
 	for _, p := range manifestPeople {
-		if strings.EqualFold(p.Username, name) {
-			return true
+		if !strings.EqualFold(p.Username, name) {
+			continue
+		}
+
+		for _, t := range p.Teams {
+			if strings.EqualFold(t, team) {
+				return true
+			}
 		}
 	}
 

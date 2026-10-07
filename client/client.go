@@ -11,7 +11,7 @@ import (
 	"github.com/gomicro/scribe"
 	"github.com/gomicro/scribe/color"
 	"github.com/gomicro/trust"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
 )
@@ -64,8 +64,13 @@ func New(ctx context.Context, tkn string) (*Client, error) {
 		BurstLimit,
 	)
 
+	gh, err := github.NewClient(github.WithHTTPClient(oauth2.NewClient(ctx, ts)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+
 	return &Client{
-		ghClient: github.NewClient(oauth2.NewClient(ctx, ts)),
+		ghClient: gh,
 		rate:     rl,
 	}, nil
 }
@@ -84,9 +89,13 @@ func (c *Client) Apply() error {
 			return color.CyanFg(s)
 		},
 		Print: scribe.NoopDecorator,
+		Error: scribe.NoopErrDecorator,
 	}
 
-	scrb := scribe.NewScribe(os.Stdout, t)
+	scrb, err := scribe.NewScribe(os.Stdout, t)
+	if err != nil {
+		return fmt.Errorf("apply: %w", err)
+	}
 
 	scrb.BeginDescribe("Applying")
 	scrb.EndDescribe()

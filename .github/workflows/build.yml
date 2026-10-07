@@ -3,8 +3,8 @@ name: Build
 on: [push]
 
 env:
-  GO_VERSION: '1.23'
-  GOLANG_CI_VERSION: '1.61'
+  GO_VERSION: '1.27'
+  GOLANG_CI_VERSION: '2.14'
 
 jobs:
 
@@ -13,12 +13,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         name: "GolangCI-Lint ${{ env.GOLANG_CI_VERSION }}"
         with:
           version: v${{ env.GOLANG_CI_VERSION }}
@@ -30,12 +35,12 @@ jobs:
 
     steps:
     - name: Install Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -54,24 +59,24 @@ jobs:
 
     steps:
     - name: Install Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Login to Docker Hub
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Snapshot
-      uses: goreleaser/goreleaser-action@v6
+      uses: goreleaser/goreleaser-action@v7
       with:
         distribution: goreleaser
         version: latest
@@ -79,7 +84,7 @@ jobs:
 
     - name: Release
       if: startsWith(github.ref, 'refs/tags/')
-      uses: goreleaser/goreleaser-action@v6
+      uses: goreleaser/goreleaser-action@v7
       with:
         distribution: goreleaser
         version: latest

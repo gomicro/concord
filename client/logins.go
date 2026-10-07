@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 )
 
 func (c *Client) GetLogins(ctx context.Context) ([]string, error) {

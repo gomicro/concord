@@ -5,7 +5,7 @@ import (
 
 	"github.com/gomicro/scribe"
 	"github.com/gomicro/scribe/color"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 )
 
 func (c *Client) GetTeams(ctx context.Context, orgName string) ([]*github.Team, error) {
@@ -25,7 +25,7 @@ func (c *Client) CreateTeam(ctx context.Context, scrb scribe.Scriber, orgName, t
 	scrb.Print(color.GreenFg("create team " + teamName))
 
 	c.Add(func() error {
-		team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
+		team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.CreateTeamRequest{
 			Name: teamName,
 		})
 		if err != nil {
@@ -91,6 +91,25 @@ func (c *Client) RemoveTeamMember(ctx context.Context, orgID, teamID int64, user
 	}
 
 	return nil
+}
+
+func (c *Client) RemoveTeamMemberBySlug(ctx context.Context, scrb scribe.Scriber, org, team, user string) {
+	scrb.Print(color.RedFg("remove " + user + " from team " + team))
+
+	c.Add(func() error {
+		_, err := c.ghClient.Teams.RemoveTeamMembershipBySlug(ctx, org, team, user)
+		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				return err
+			}
+
+			return err
+		}
+
+		scrb.Print(color.GreenFg("removed " + user + " from team " + team))
+
+		return nil
+	})
 }
 
 func (c *Client) GetTeamMembers(ctx context.Context, org, team string) ([]*github.User, error) {

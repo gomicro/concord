@@ -43,7 +43,8 @@ func parseFromFile(file string) (*File, error) {
 		return nil, fmt.Errorf("open: %w", err)
 	}
 
-	defer f.Close()
+	// nothing was written, so a close error can't lose data
+	defer func() { _ = f.Close() }()
 
 	var c File
 
@@ -70,23 +71,28 @@ func (c *File) writeToFile(file string) error {
 		return fmt.Errorf("open: %w", err)
 	}
 
-	defer f.Close()
-
 	err = yaml.NewEncoder(f).Encode(c)
 	if err != nil {
+		_ = f.Close()
 		return fmt.Errorf("encode: %w", err)
+	}
+
+	// close can report a failed write, so it needs to be checked
+	err = f.Close()
+	if err != nil {
+		return fmt.Errorf("close: %w", err)
 	}
 
 	return nil
 }
 
 func WithConfig(ctx context.Context, file string) context.Context {
-	ctx, cancel := context.WithCancelCause(ctx)
-
 	c, err := ParseFromFile()
 	if err != nil {
+		ctx, cancel := context.WithCancelCause(ctx)
 		cancel(err)
-		return nil
+
+		return ctx
 	}
 
 	return context.WithValue(ctx, ctxKeyConfig, c)
