@@ -25,7 +25,7 @@ func (c *Client) CreateTeam(ctx context.Context, scrb scribe.Scriber, orgName, t
 	scrb.Print(color.GreenFg("create team " + teamName))
 
 	c.Add(func() error {
-		team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.NewTeam{
+		team, _, err := c.ghClient.Teams.CreateTeam(ctx, orgName, github.CreateTeamRequest{
 			Name: teamName,
 		})
 		if err != nil {

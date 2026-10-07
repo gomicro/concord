@@ -18,23 +18,9 @@ import (
 var scrb scribe.Scriber
 
 func init() {
-	cobra.OnInitialize(initEnvs)
-
 	rootCmd.PersistentFlags().StringP("file", "f", "concord.yml", "Path to a file containing a manifest")
 	rootCmd.PersistentFlags().Bool("dry", false, "Print out the actions that would be taken without actually taking them")
 	rootCmd.PersistentFlags().Bool("force", false, "Force the action to be taken without prompting for confirmation")
-
-	t := &scribe.Theme{
-		Describe: func(s string) string {
-			return color.CyanFg(s)
-		},
-		Print: scribe.NoopDecorator,
-	}
-
-	scrb = scribe.NewScribe(os.Stdout, t)
-}
-
-func initEnvs() {
 }
 
 var rootCmd = &cobra.Command{
@@ -43,6 +29,21 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	t := &scribe.Theme{
+		Describe: func(s string) string {
+			return color.CyanFg(s)
+		},
+		Print: scribe.NoopDecorator,
+		Error: scribe.NoopErrDecorator,
+	}
+
+	var err error
+	scrb, err = scribe.NewScribe(os.Stdout, t)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+		os.Exit(1)
+	}
+
 	c, err := config.ParseFromFile()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err.Error())

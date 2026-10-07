@@ -5,7 +5,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/gomicro/scribe"
@@ -22,13 +21,18 @@ func TestRemoveTeamMemberBySlug(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	gh := github.NewClient(nil)
-	gh.BaseURL, _ = url.Parse(srv.URL + "/")
+	gh, err := github.NewClient(github.WithURLs(new(srv.URL+"/"), nil))
+	if err != nil {
+		t.Fatalf("failed to create github client: %v", err)
+	}
 
 	c := &Client{ghClient: gh}
 
 	var out bytes.Buffer
-	scrb := scribe.NewScribe(&out, &scribe.Theme{Describe: scribe.NoopDecorator, Print: scribe.NoopDecorator})
+	scrb, err := scribe.NewScribe(&out, scribe.DefaultTheme())
+	if err != nil {
+		t.Fatalf("failed to create scribe: %v", err)
+	}
 
 	c.RemoveTeamMemberBySlug(context.Background(), scrb, "my-org", "backend", "alice")
 
@@ -40,7 +44,7 @@ func TestRemoveTeamMemberBySlug(t *testing.T) {
 		t.Fatalf("expected 1 queued action, got %d", len(c.stack))
 	}
 
-	err := c.stack[0]()
+	err = c.stack[0]()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

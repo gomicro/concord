@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/gomicro/concord/client"
@@ -14,7 +15,6 @@ import (
 	"github.com/gomicro/scribe/color"
 	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -371,16 +371,15 @@ func buildBranchProtectionState(branch *gh_pb.Branch) *github.ProtectionRequest 
 	}
 
 	if branch.Protection.ChecksMustPass != nil && *branch.Protection.ChecksMustPass {
-		state.RequiredStatusChecks = &github.RequiredStatusChecks{
-			Checks: []*github.RequiredStatusCheck{},
+		checks := []*github.RequiredStatusCheck{}
+		for _, c := range branch.Protection.RequiredChecks {
+			checks = append(checks, &github.RequiredStatusCheck{
+				Context: c,
+			})
 		}
 
-		if len(branch.Protection.RequiredChecks) > 0 {
-			for _, c := range branch.Protection.RequiredChecks {
-				state.RequiredStatusChecks.Checks = append(state.RequiredStatusChecks.Checks, &github.RequiredStatusCheck{
-					Context: c,
-				})
-			}
+		state.RequiredStatusChecks = &github.RequiredStatusChecks{
+			Checks: &checks,
 		}
 	}
 

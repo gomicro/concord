@@ -62,7 +62,7 @@ func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repositor
 		PerPage: 100,
 	}
 
-	userOpts := &github.RepositoryListOptions{
+	userOpts := &github.RepositoryListByUserOptions{
 		Type:    "all",
 		Page:    0,
 		PerPage: 100,
@@ -75,7 +75,7 @@ func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repositor
 		if orgFound {
 			rs, resp, err = c.ghClient.Repositories.ListByOrg(ctx, name, orgOpts)
 		} else {
-			rs, resp, err = c.ghClient.Repositories.List(ctx, name, userOpts)
+			rs, resp, err = c.ghClient.Repositories.ListByUser(ctx, name, userOpts)
 		}
 
 		if err != nil {
@@ -227,7 +227,7 @@ func (c *Client) RemoveRepoFromTeam(ctx context.Context, scrb scribe.Scriber, or
 
 func (c *Client) GetRepoTopics(ctx context.Context, org, name string) ([]string, error) {
 	c.rate.Wait(ctx) //nolint: errcheck
-	topics, resp, err := c.ghClient.Repositories.ListAllTopics(ctx, org, name)
+	topics, resp, err := c.ghClient.Repositories.ListAllTopics(ctx, org, name, nil)
 	if err != nil {
 		if _, ok := err.(*github.RateLimitError); ok {
 			return nil, fmt.Errorf("github: hit rate limit")
@@ -526,9 +526,9 @@ func (c *Client) ProtectBranch(ctx context.Context, scrb scribe.Scriber, org, re
 			setReqChecksTo = true
 
 			rc := protection.GetRequiredStatusChecks()
-			if len(rc.Checks) > 0 {
-				for i := range rc.Checks {
-					checks = append(checks, rc.Checks[i].Context)
+			if rc.Checks != nil {
+				for _, chk := range *rc.Checks {
+					checks = append(checks, chk.Context)
 				}
 			}
 
