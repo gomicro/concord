@@ -12,7 +12,7 @@ import (
 	gh_pb "github.com/gomicro/concord/github/v1"
 	"github.com/gomicro/concord/manifest"
 	"github.com/gomicro/scribe/color"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
 )

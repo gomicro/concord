@@ -9,7 +9,7 @@ import (
 
 	"github.com/gomicro/scribe"
 	"github.com/gomicro/scribe/color"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 )
 
 var (

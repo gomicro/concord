@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	gh_pb "github.com/gomicro/concord/github/v1"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 )
 
 func TestGetTeamMembersBreakdown(t *testing.T) {

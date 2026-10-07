@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/gomicro/scribe"
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v92/github"
 )
 
 func TestRemoveTeamMemberBySlug(t *testing.T) {
