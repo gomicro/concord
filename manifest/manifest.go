@@ -76,11 +76,11 @@ func ReadManifest(file string) (*gh_pb.Organization, error) {
 }
 
 func WithManifest(ctx context.Context, file string) context.Context {
-	ctx, cancel := context.WithCancelCause(ctx)
-
 	m, err := ReadManifest(file)
 	if err != nil {
+		ctx, cancel := context.WithCancelCause(ctx)
 		cancel(err)
+
 		return ctx
 	}
 
