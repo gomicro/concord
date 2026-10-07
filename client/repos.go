@@ -57,19 +57,15 @@ func (c *Client) GetRepos(ctx context.Context, name string) ([]*github.Repositor
 	}
 
 	orgOpts := &github.RepositoryListByOrgOptions{
-		Type: "all",
-		ListOptions: github.ListOptions{
-			Page:    0,
-			PerPage: 100,
-		},
+		Type:    "all",
+		Page:    0,
+		PerPage: 100,
 	}
 
 	userOpts := &github.RepositoryListOptions{
-		Type: "all",
-		ListOptions: github.ListOptions{
-			Page:    0,
-			PerPage: 100,
-		},
+		Type:    "all",
+		Page:    0,
+		PerPage: 100,
 	}
 
 	var repos []*github.Repository
@@ -358,7 +354,7 @@ func (c *Client) InitRepo(ctx context.Context, scrb scribe.Scriber, org, repo, b
 	content := []byte("# " + repo)
 
 	opts := &github.RepositoryContentFileOptions{
-		Message: github.String("initializing repo"),
+		Message: new("initializing repo"),
 		Content: content,
 		Branch:  &branch,
 	}

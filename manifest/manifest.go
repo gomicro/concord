@@ -39,7 +39,7 @@ func ReadManifest(file string) (*gh_pb.Organization, error) {
 		return nil, err
 	}
 
-	var v map[string]interface{}
+	var v map[string]any
 	err = yaml.Unmarshal(b, &v)
 	if err != nil {
 		return nil, err
